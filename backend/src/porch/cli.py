@@ -19,7 +19,7 @@ from porch.api.app import create_app
 from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext
 from porch.config import Settings
-from porch.demo import card_lines, demo_clock, ingest_tape
+from porch.demo import card_lines, demo_context, ingest_tape
 
 
 class SystemClock:
@@ -79,12 +79,11 @@ def _demo(args: argparse.Namespace) -> None:
     tape = load_tape(_resolve_input(Path(args.tape)))
     # The demo owns .local; rebuild it from scratch every run.
     shutil.rmtree(settings.api.sqlite_path.parent, ignore_errors=True)
-    ctx = AppContext(
-        settings=settings,
-        repo=SqliteRepository(settings.api.sqlite_path),
-        media=FileMediaStore(settings.api.local_media_dir, settings.api.public_base_url),
-        house=load_house(_resolve_input(settings.api.house_file)),
-        clock=demo_clock(tape),
+    ctx = demo_context(
+        tape,
+        settings,
+        settings.api.sqlite_path.parent,
+        _resolve_input(settings.api.house_file),
     )
     asyncio.run(ingest_tape(ctx, tape))
     day = today(ctx.house, ctx.clock)

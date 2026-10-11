@@ -10,7 +10,10 @@ import hashlib
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
+from porch.adapters.local import FileMediaStore, SqliteRepository
+from porch.adapters.local.house_file import load_house
 from porch.adapters.tape import ReplaySource, Tape
 from porch.api.deps import AppContext
 from porch.config import Settings
@@ -132,6 +135,22 @@ async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
         ),
     )
     return await service.run_once()
+
+
+def demo_context(
+    tape: Tape,
+    settings: Settings,
+    local_dir: Path,
+    house_file: Path,
+) -> AppContext:
+    """AppContext backed by a fresh local dir (sqlite + file media)."""
+    return AppContext(
+        settings=settings,
+        repo=SqliteRepository(local_dir / "porch.db"),
+        media=FileMediaStore(local_dir / "media", settings.api.public_base_url),
+        house=load_house(house_file),
+        clock=demo_clock(tape),
+    )
 
 
 def card_lines(visits: Sequence[Visit], ctx: AppContext) -> list[str]:

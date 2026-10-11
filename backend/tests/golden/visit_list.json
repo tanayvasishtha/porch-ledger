@@ -1,0 +1,107 @@
+{
+  "cards": [
+    {
+      "blocks_door": false,
+      "claimed_by": null,
+      "clip_url": null,
+      "description": "A box was left at the door.",
+      "end_ms": 1780337205000,
+      "facts": [
+        "Box for Priya Shah",
+        "Rain likely by 4:00 pm"
+      ],
+      "hero_url": "/v1/media/a415da0e798544a3fd43dcb7271f4db2a619d4227f34eeb80b0a0103892c461e.jpg",
+      "id": "cb5c0e777ac34a5b",
+      "kind": "delivery",
+      "provenance": "replay",
+      "recipient_id": "priya",
+      "span": "11:05 to 11:06 am",
+      "start_ms": 1780337100000,
+      "title": "Delivery",
+      "version": 1
+    },
+    {
+      "blocks_door": null,
+      "claimed_by": null,
+      "clip_url": null,
+      "description": "Someone came to the door.",
+      "end_ms": 1780345805000,
+      "facts": [],
+      "hero_url": "/v1/media/0f6f4f00bd59ceb563bc49088b4ba69eb923c32d35f7e1c4a0ab24882b6c8de6.jpg",
+      "id": "28a06f157c6ac29f",
+      "kind": "visitor",
+      "provenance": "replay",
+      "recipient_id": null,
+      "span": "1:30 pm",
+      "start_ms": 1780345800000,
+      "title": "Visitor",
+      "version": 1
+    },
+    {
+      "blocks_door": true,
+      "claimed_by": null,
+      "clip_url": null,
+      "description": "A box was left at the door.",
+      "end_ms": 1780352415000,
+      "facts": [
+        "Box for Jo Lindqvist",
+        "Leaning on the door",
+        "Rain likely by 4:00 pm"
+      ],
+      "hero_url": "/v1/media/fe9f75fb5338cf0d0b4e690953d6e853682b03fb3655b5ecb3a194ab0bf0ccf8.jpg",
+      "id": "903fff9b234c73cf",
+      "kind": "delivery",
+      "provenance": "replay",
+      "recipient_id": "jo",
+      "span": "3:20 pm",
+      "start_ms": 1780352400000,
+      "title": "Delivery",
+      "version": 1
+    },
+    {
+      "blocks_door": null,
+      "claimed_by": null,
+      "clip_url": null,
+      "description": "A car stopped outside for 6 min.",
+      "end_ms": 1780361460000,
+      "facts": [
+        "Stopped 6 min"
+      ],
+      "hero_url": "/v1/media/e0238bdbfe3f44c2bad5725585325554293332df28f13ce0d2d5407b3e4ce289.jpg",
+      "id": "26af835795dd757e",
+      "kind": "car_stopped",
+      "provenance": "replay",
+      "recipient_id": null,
+      "span": "5:45 to 5:51 pm",
+      "start_ms": 1780361100000,
+      "title": "Car stopped",
+      "version": 1
+    },
+    {
+      "blocks_door": null,
+      "claimed_by": null,
+      "clip_url": null,
+      "description": "A box that was at the door is gone.",
+      "end_ms": 1780366205000,
+      "facts": [
+        "Box for Priya Shah"
+      ],
+      "hero_url": "/v1/media/f736d0aba49acc1bbd9fbeb657b674ba47ff4acfb2097c173ce38ee1e1ec5d7d.jpg",
+      "id": "5de097e11918a5fa",
+      "kind": "box_gone",
+      "provenance": "replay",
+      "recipient_id": "priya",
+      "span": "7:10 pm",
+      "start_ms": 1780366200000,
+      "title": "Box gone",
+      "version": 1
+    }
+  ],
+  "day": "2026-06-01",
+  "folded": {
+    "activity": 0,
+    "cars_passed": 2
+  },
+  "house_id": "demo",
+  "version": 1
+}

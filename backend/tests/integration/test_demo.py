@@ -6,13 +6,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from porch.adapters.local import FileMediaStore, SqliteRepository
-from porch.adapters.local.house_file import load_house
 from porch.adapters.tape import load_tape
 from porch.api.app import create_app
-from porch.api.deps import AppContext
 from porch.config import Settings
-from porch.demo import demo_clock, ingest_tape
+from porch.demo import demo_context, ingest_tape
 from tests.helpers import DEMO_FIXTURE, REPO_ROOT
 
 TAPE_DIR = REPO_ROOT / "fixtures" / "tapes" / "synthetic-day"
@@ -39,14 +36,7 @@ def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_demo_day(tmp_path: Path) -> None:
     tape = load_tape(TAPE_DIR)
-    settings = Settings()
-    ctx = AppContext(
-        settings=settings,
-        repo=SqliteRepository(tmp_path / "porch.db"),
-        media=FileMediaStore(tmp_path / "media", settings.api.public_base_url),
-        house=load_house(DEMO_FIXTURE),
-        clock=demo_clock(tape),
-    )
+    ctx = demo_context(tape, Settings(), tmp_path, DEMO_FIXTURE)
     asyncio.run(ingest_tape(ctx, tape))
     with TestClient(create_app(ctx)) as client:
         response = client.get("/v1/houses/demo/visits", params={"day": "2026-06-01"})

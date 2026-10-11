@@ -1,0 +1,50 @@
+{
+  "blocks_door": false,
+  "box": {
+    "blocks_door": false,
+    "h": 0.18,
+    "recipient_id": "priya",
+    "recipient_state": "matched",
+    "w": 0.12,
+    "x": 0.6,
+    "y": 0.7
+  },
+  "claimed_by": null,
+  "clip_url": null,
+  "description": "A box was left at the door.",
+  "door_overlap": 0.0,
+  "end_ms": 1780337205000,
+  "facts": [
+    "Box for Priya Shah",
+    "Rain likely by 4:00 pm"
+  ],
+  "hero_url": "/v1/media/a415da0e798544a3fd43dcb7271f4db2a619d4227f34eeb80b0a0103892c461e.jpg",
+  "id": "cb5c0e777ac34a5b",
+  "kind": "delivery",
+  "provenance": "replay",
+  "recipient_id": "priya",
+  "span": "11:05 to 11:06 am",
+  "start_ms": 1780337100000,
+  "title": "Delivery",
+  "trace": [
+    {
+      "latency_ms": 0,
+      "note": "matched",
+      "ok": true,
+      "tool": "read_label"
+    },
+    {
+      "latency_ms": 0,
+      "note": "blocks=False",
+      "ok": true,
+      "tool": "check_door"
+    },
+    {
+      "latency_ms": 0,
+      "note": "70%",
+      "ok": true,
+      "tool": "rain_outlook"
+    }
+  ],
+  "version": 1
+}

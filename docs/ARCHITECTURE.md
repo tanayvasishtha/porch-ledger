@@ -22,3 +22,5 @@
 - Android Gradle Plugin 8.13.2 + Kotlin 2.4.21: the app toolchain; AGP 8.x line keeps the known Kotlin plugin wiring.
 - Compose BOM 2026.04.01 + androidx.tv:tv-material 1.1.0: TV UI toolkit; the 2026.09 BOM requires AGP 9 and compileSdk 37, so the newest BOM that still builds on AGP 8 is pinned.
 - Fraunces + Atkinson Hyperlegible TTFs: bundled typefaces under res/font, OFL texts in assets/licenses.
+- Ktor client (OkHttp engine) + kotlinx.serialization: TV API client over the shared OpenAPI/golden contract; okhttp pinned to 5.4 because 5.5 requires compileSdk 37.
+- DataStore preferences: persists the last good visit list for offline start.

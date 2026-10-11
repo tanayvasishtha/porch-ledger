@@ -91,7 +91,8 @@ class ApiSettings(BaseModel):
     house_file: Path = Path("fixtures/house.demo.json")
     sqlite_path: Path = Path(".local/porch.db")
     local_media_dir: Path = Path(".local/media")
-    public_base_url: str = "http://localhost:8000"
+    # Empty means media URLs go out relative; clients resolve their own base.
+    public_base_url: str = ""
 
 
 class Settings(BaseSettings):
