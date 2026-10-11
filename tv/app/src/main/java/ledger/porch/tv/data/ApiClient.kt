@@ -38,9 +38,9 @@ class ApiClient(
     private val houseKey: String = BuildConfig.HOUSE_KEY,
     private val houseId: String = "demo",
 ) {
-    suspend fun visits(day: String, etag: String?): VisitsResponse {
+    suspend fun visits(day: String?, etag: String?): VisitsResponse {
         val response = client.get("$baseUrl/v1/houses/$houseId/visits") {
-            parameter("day", day)
+            if (day != null) parameter("day", day)
             if (etag != null) header(HttpHeaders.IfNoneMatch, etag)
             auth()
         }

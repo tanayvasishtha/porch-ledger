@@ -28,7 +28,7 @@ class VisitRepository(
         return cached?.let(::withResolvedMedia)
     }
 
-    suspend fun refresh(day: String): Result<VisitList> = runCatching {
+    suspend fun refresh(day: String?): Result<VisitList> = runCatching {
         when (val response = api.visits(day, etag)) {
             is VisitsResponse.NotModified -> cached ?: error("304 without a cached body")
             is VisitsResponse.Fresh -> {

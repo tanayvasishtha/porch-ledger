@@ -63,7 +63,9 @@ configurations.all {
 }
 
 dependencies {
-    implementation(platform(libs.compose.bom))
+    // Coil and friends request Compose 1.12 (needs AGP 9 + SDK 37);
+    // the enforced BOM pins Compose back to the AGP 8 compatible set.
+    implementation(enforcedPlatform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui.tooling.preview)
@@ -78,6 +80,8 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     debugImplementation(libs.compose.ui.tooling)
 
