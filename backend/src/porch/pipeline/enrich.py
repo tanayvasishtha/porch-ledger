@@ -86,7 +86,7 @@ async def _read_label(
         lines = await ports.reader.read(crop_label(data, visit.box.box, settings))
     except PortError as exc:
         return _failed(visit, "read_label", start_ms, clock, exc)
->>>>>>> 25538df (fixup! Pipeline: ingest with perception and deterministic enrichment)
+
     match = match_recipient(
         lines,
         house.residents,
@@ -102,7 +102,7 @@ async def _read_label(
     return _with_call(replace(visit, box=box), call)
 
 
-def _crop_label(data: bytes, box: NormBox, settings: Settings) -> bytes:
+def crop_label(data: bytes, box: NormBox, settings: Settings) -> bytes:
     """Box region expanded by label_crop_margin, clamped to the frame."""
     margin = settings.vision.label_crop_margin
     image = Image.open(io.BytesIO(data))

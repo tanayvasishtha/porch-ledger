@@ -16,3 +16,7 @@ check: check-prose backend
 contracts:
     uv run python -m porch export-contracts --out ../contracts
     git -C .. diff --exit-code contracts
+
+[working-directory: 'backend']
+demo:
+    uv run python -m porch demo --serve
