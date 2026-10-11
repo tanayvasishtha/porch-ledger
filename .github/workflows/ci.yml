@@ -40,7 +40,18 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew spotlessCheck detekt lint testDebugUnitTest verifyRoborazziDebug assembleRelease
+      - name: spotless
+        run: ./gradlew spotlessCheck
+      - name: detekt
+        run: ./gradlew detekt
+      - name: lint
+        run: ./gradlew lint
+      - name: unit tests
+        run: ./gradlew testDebugUnitTest
+      - name: screenshot tests
+        run: ./gradlew verifyRoborazziDebug
+      - name: release build
+        run: ./gradlew assembleRelease
 
   secrets:
     runs-on: ubuntu-latest
