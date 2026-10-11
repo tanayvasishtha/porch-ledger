@@ -1,16 +1,18 @@
-"""create_app: wire ctx, CORS, problem+json handlers and the routers."""
+"""create_app: wire ctx, CORS, problem+json handlers, routers and MCP."""
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from porch.api.auth import bearer_guard
+from porch.api.auth import BearerASGIMiddleware, bearer_guard
 from porch.api.deps import AppContext
 from porch.api.routes import health_router, router
-from porch.api.schemas import Problem
-
-PROBLEM_MEDIA_TYPE = "application/problem+json"
+from porch.api.schemas import PROBLEM_MEDIA_TYPE, Problem
+from porch.mcp_server import build_mcp
 
 
 def _problem_response(status: int, detail: str) -> JSONResponse:
@@ -46,8 +48,24 @@ def _validation_handler(_request: Request, exc: Exception) -> JSONResponse:
 
 def create_app(ctx: AppContext) -> FastAPI:
     """Build the app around an explicit context; nothing lives in globals."""
-    app = FastAPI(title="Porch Ledger")
+    mcp = build_mcp(ctx)
+    # Stateless JSON responses: no sessions to leak between requests.
+    mcp_http = mcp.streamable_http_app(
+        streamable_http_path="/",
+        stateless_http=True,
+        json_response=True,
+    )
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # A mounted app's own lifespan never runs; the host must enter
+        # the session manager itself.
+        async with mcp.session_manager.run():
+            yield
+
+    app = FastAPI(title="Porch Ledger", lifespan=lifespan)
     app.state.ctx = ctx
+    app.state.mcp = mcp
     origins = ctx.settings.api.cors_origins
     if origins:
         app.add_middleware(
@@ -60,4 +78,8 @@ def create_app(ctx: AppContext) -> FastAPI:
     app.add_exception_handler(RequestValidationError, _validation_handler)
     app.include_router(health_router)
     app.include_router(router, dependencies=[Depends(bearer_guard)])
+    app.mount(
+        "/mcp",
+        BearerASGIMiddleware(mcp_http, ctx.settings.api.house_key_sha256),
+    )
     return app

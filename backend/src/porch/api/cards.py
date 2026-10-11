@@ -2,7 +2,9 @@
 
 from porch.api.deps import AppContext
 from porch.api.schemas import BoxOut, ToolCallOut, VisitCard, VisitDetail
-from porch.domain import Visit, card_text
+from porch.domain import Visit, VisitKind, card_text
+
+FOLDED_KINDS = {VisitKind.CARS_PASSED, VisitKind.ACTIVITY}
 
 
 def media_url(ctx: AppContext, key: str | None) -> str | None:

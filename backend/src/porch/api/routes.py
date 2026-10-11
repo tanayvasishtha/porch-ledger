@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import mimetypes
-from datetime import date, datetime, time, timedelta
+from datetime import date
 from typing import Annotated
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from porch.adapters.local import FileMediaStore, MediaKeyError
 from porch.api import cards
+from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext, get_ctx
 from porch.api.schemas import (
     ClaimRequest,
@@ -22,12 +22,8 @@ from porch.api.schemas import (
 )
 from porch.domain import House, Visit, VisitKind
 
-MS_PER_S = 1000
-
 router = APIRouter()
 health_router = APIRouter()
-
-_FOLDED_KINDS = {VisitKind.CARS_PASSED, VisitKind.ACTIVITY}
 
 
 def _require_house(ctx: AppContext, house_id: str) -> House:
@@ -36,20 +32,8 @@ def _require_house(ctx: AppContext, house_id: str) -> House:
     return ctx.house
 
 
-def _day_bounds(day: date, house: House) -> tuple[int, int]:
-    tz = ZoneInfo(house.timezone)
-    start = datetime.combine(day, time.min, tzinfo=tz)
-    end = start + timedelta(days=1)
-    return int(start.timestamp() * MS_PER_S), int(end.timestamp() * MS_PER_S)
-
-
-def _today(house: House, ctx: AppContext) -> date:
-    tz = ZoneInfo(house.timezone)
-    return datetime.fromtimestamp(ctx.clock.now_ms() / MS_PER_S, tz=tz).date()
-
-
 def _split_folded(visits: list[Visit]) -> tuple[list[Visit], Folded]:
-    shown = [v for v in visits if v.kind not in _FOLDED_KINDS]
+    shown = [v for v in visits if v.kind not in cards.FOLDED_KINDS]
     folded = Folded(
         cars_passed=sum(1 for v in visits if v.kind == VisitKind.CARS_PASSED),
         activity=sum(1 for v in visits if v.kind == VisitKind.ACTIVITY),
@@ -71,8 +55,8 @@ async def list_visits(
     day: date | None = None,
 ) -> VisitList | Response:
     house = _require_house(ctx, house_id)
-    day = day or _today(house, ctx)
-    start_ms, end_ms = _day_bounds(day, house)
+    day = day or today(house, ctx.clock)
+    start_ms, end_ms = day_bounds(day, house)
     version = await ctx.repo.house_version(house_id)
     etag = f'"v{version}-{day.isoformat()}"'
     if request.headers.get("if-none-match") == etag:

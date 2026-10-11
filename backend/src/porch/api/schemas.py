@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from porch.domain import RecipientState
 
+PROBLEM_MEDIA_TYPE = "application/problem+json"
+
 
 class VisitCard(BaseModel):
     id: str
@@ -62,6 +64,11 @@ class VisitDetail(VisitCard):
 class ResidentOut(BaseModel):
     id: str
     display_name: str
+
+
+class Inbox(BaseModel):
+    spoken: str
+    items: list[VisitCard]
 
 
 class ClaimRequest(BaseModel):
