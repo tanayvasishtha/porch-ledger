@@ -1,0 +1,744 @@
+[
+  {
+    "annotations": {
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "description": "Spoken summary and delivery cards for one resident, today.",
+    "input_schema": {
+      "properties": {
+        "resident_id": {
+          "title": "Resident Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resident_id"
+      ],
+      "title": "anything_for_meArguments",
+      "type": "object"
+    },
+    "name": "anything_for_me",
+    "output_schema": {
+      "$defs": {
+        "VisitCard": {
+          "properties": {
+            "blocks_door": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Blocks Door"
+            },
+            "claimed_by": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Claimed By"
+            },
+            "clip_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clip Url"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "end_ms": {
+              "title": "End Ms",
+              "type": "integer"
+            },
+            "facts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Facts",
+              "type": "array"
+            },
+            "hero_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hero Url"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "kind": {
+              "title": "Kind",
+              "type": "string"
+            },
+            "provenance": {
+              "title": "Provenance",
+              "type": "string"
+            },
+            "recipient_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recipient Id"
+            },
+            "span": {
+              "title": "Span",
+              "type": "string"
+            },
+            "start_ms": {
+              "title": "Start Ms",
+              "type": "integer"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "start_ms",
+            "end_ms",
+            "title",
+            "span",
+            "facts",
+            "description",
+            "hero_url",
+            "clip_url",
+            "recipient_id",
+            "blocks_door",
+            "claimed_by",
+            "provenance",
+            "version"
+          ],
+          "title": "VisitCard",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/VisitCard"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "spoken": {
+          "title": "Spoken",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spoken",
+        "items"
+      ],
+      "title": "Inbox",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "description": "Today's visit cards; folded kinds appear only when kind asks.",
+    "input_schema": {
+      "properties": {
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        }
+      },
+      "title": "todays_visitsArguments",
+      "type": "object"
+    },
+    "name": "todays_visits",
+    "output_schema": {
+      "$defs": {
+        "VisitCard": {
+          "properties": {
+            "blocks_door": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Blocks Door"
+            },
+            "claimed_by": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Claimed By"
+            },
+            "clip_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Clip Url"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "end_ms": {
+              "title": "End Ms",
+              "type": "integer"
+            },
+            "facts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Facts",
+              "type": "array"
+            },
+            "hero_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hero Url"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "kind": {
+              "title": "Kind",
+              "type": "string"
+            },
+            "provenance": {
+              "title": "Provenance",
+              "type": "string"
+            },
+            "recipient_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recipient Id"
+            },
+            "span": {
+              "title": "Span",
+              "type": "string"
+            },
+            "start_ms": {
+              "title": "Start Ms",
+              "type": "integer"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "start_ms",
+            "end_ms",
+            "title",
+            "span",
+            "facts",
+            "description",
+            "hero_url",
+            "clip_url",
+            "recipient_id",
+            "blocks_door",
+            "claimed_by",
+            "provenance",
+            "version"
+          ],
+          "title": "VisitCard",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "result": {
+          "items": {
+            "$ref": "#/$defs/VisitCard"
+          },
+          "title": "Result",
+          "type": "array"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "title": "todays_visitsOutput",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "description": "Full detail for one visit.",
+    "input_schema": {
+      "properties": {
+        "visit_id": {
+          "title": "Visit Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "visit_id"
+      ],
+      "title": "visit_detailArguments",
+      "type": "object"
+    },
+    "name": "visit_detail",
+    "output_schema": {
+      "$defs": {
+        "BoxOut": {
+          "properties": {
+            "blocks_door": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Blocks Door"
+            },
+            "h": {
+              "title": "H",
+              "type": "number"
+            },
+            "recipient_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recipient Id"
+            },
+            "recipient_state": {
+              "enum": [
+                "matched",
+                "unreadable",
+                "not_ours",
+                "not_checked"
+              ],
+              "title": "Recipient State",
+              "type": "string"
+            },
+            "w": {
+              "title": "W",
+              "type": "number"
+            },
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "recipient_id",
+            "recipient_state",
+            "blocks_door"
+          ],
+          "title": "BoxOut",
+          "type": "object"
+        },
+        "ToolCallOut": {
+          "properties": {
+            "latency_ms": {
+              "title": "Latency Ms",
+              "type": "integer"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string"
+            },
+            "ok": {
+              "title": "Ok",
+              "type": "boolean"
+            },
+            "tool": {
+              "title": "Tool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "tool",
+            "ok",
+            "latency_ms",
+            "note"
+          ],
+          "title": "ToolCallOut",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "blocks_door": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Blocks Door"
+        },
+        "box": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoxOut"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "claimed_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Claimed By"
+        },
+        "clip_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Clip Url"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "door_overlap": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Door Overlap"
+        },
+        "end_ms": {
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "facts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "hero_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hero Url"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "recipient_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recipient Id"
+        },
+        "span": {
+          "title": "Span",
+          "type": "string"
+        },
+        "start_ms": {
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "trace": {
+          "items": {
+            "$ref": "#/$defs/ToolCallOut"
+          },
+          "title": "Trace",
+          "type": "array"
+        },
+        "version": {
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "start_ms",
+        "end_ms",
+        "title",
+        "span",
+        "facts",
+        "description",
+        "hero_url",
+        "clip_url",
+        "recipient_id",
+        "blocks_door",
+        "claimed_by",
+        "provenance",
+        "version",
+        "box",
+        "door_overlap",
+        "trace"
+      ],
+      "title": "VisitDetail",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "open_world_hint": false
+    },
+    "description": "Mark a delivery as claimed by a resident.",
+    "input_schema": {
+      "properties": {
+        "resident_id": {
+          "title": "Resident Id",
+          "type": "string"
+        },
+        "visit_id": {
+          "title": "Visit Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "visit_id",
+        "resident_id"
+      ],
+      "title": "claim_boxArguments",
+      "type": "object"
+    },
+    "name": "claim_box",
+    "output_schema": {
+      "properties": {
+        "blocks_door": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Blocks Door"
+        },
+        "claimed_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Claimed By"
+        },
+        "clip_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Clip Url"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "end_ms": {
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "facts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "hero_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hero Url"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "recipient_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recipient Id"
+        },
+        "span": {
+          "title": "Span",
+          "type": "string"
+        },
+        "start_ms": {
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "start_ms",
+        "end_ms",
+        "title",
+        "span",
+        "facts",
+        "description",
+        "hero_url",
+        "clip_url",
+        "recipient_id",
+        "blocks_door",
+        "claimed_by",
+        "provenance",
+        "version"
+      ],
+      "title": "VisitCard",
+      "type": "object"
+    }
+  }
+]

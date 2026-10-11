@@ -11,3 +11,8 @@ backend:
     uv run pytest --cov=porch.domain --cov=porch.adapters --cov=porch.api --cov-report=term-missing --cov-fail-under=90
 
 check: check-prose backend
+
+[working-directory: 'backend']
+contracts:
+    uv run python -m porch export-contracts --out ../contracts
+    git -C .. diff --exit-code contracts

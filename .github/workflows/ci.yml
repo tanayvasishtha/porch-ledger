@@ -26,6 +26,7 @@ jobs:
       - run: uv run ruff format --check
       - run: uv run mypy
       - run: uv run pytest --cov=porch.domain --cov=porch.adapters --cov=porch.api --cov-report=term-missing --cov-fail-under=90
+      - run: uv run python -m porch export-contracts --out ../contracts && git -C .. diff --exit-code contracts
 
   secrets:
     runs-on: ubuntu-latest
