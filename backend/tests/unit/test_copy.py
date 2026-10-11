@@ -15,9 +15,15 @@ from porch.domain import (
     Visit,
     VisitKind,
     card_text,
+    spoken_inbox,
 )
 
 PRIYA = Resident(id="r1", display_name="Priya Shah")
+INBOX_RESIDENTS = (
+    Resident(id="priya", display_name="Priya Shah"),
+    Resident(id="sam", display_name="Sam Okafor"),
+    Resident(id="jo", display_name="Jo Lindqvist"),
+)
 BOX = NormBox(x=0.1, y=0.1, w=0.2, h=0.2)
 BANNED = ("stolen", "theft", "thief", "suspicious", "intruder")
 
@@ -212,3 +218,64 @@ def test_no_banned_words_in_any_generated_text() -> None:
         blob = " ".join([card.title, card.span, card.description, *card.facts]).casefold()
         for word in BANNED:
             assert word not in blob, f"{word!r} in {blob!r}"
+
+
+def inbox_visit(recipient_id: str, start_ms: int, claimed_by: str | None = None) -> Visit:
+    return replace(
+        mkvisit(VisitKind.DELIVERY, start_ms, start_ms + 60_000),
+        box=facts_box("matched", recipient_id=recipient_id),
+        claimed_by=claimed_by,
+    )
+
+
+def test_inbox_nothing() -> None:
+    house = mkhouse(residents=INBOX_RESIDENTS)
+    priya = house.residents[0]
+    assert spoken_inbox(priya, [], house) == "Nothing for you today."
+
+
+def test_inbox_only_others() -> None:
+    house = mkhouse(residents=INBOX_RESIDENTS)
+    priya, _, jo = house.residents
+    visits = [inbox_visit("sam", ms(1, 9, 0)), inbox_visit("jo", ms(1, 10, 0))]
+    assert spoken_inbox(priya, visits, house) == (
+        "Nothing for you today. There are boxes for Sam Okafor and Jo Lindqvist."
+    )
+    assert spoken_inbox(jo, [inbox_visit("sam", ms(1, 9, 0))], house) == (
+        "Nothing for you today. There is a box for Sam Okafor."
+    )
+
+
+def test_inbox_mine() -> None:
+    house = mkhouse(residents=INBOX_RESIDENTS)
+    priya = house.residents[0]
+    one = [inbox_visit("priya", ms(1, 14, 14))]
+    assert spoken_inbox(priya, one, house) == ("You have a box at the door, left at 2:14 pm.")
+    two = [inbox_visit("priya", ms(1, 14, 14)), inbox_visit("priya", ms(1, 16, 5))]
+    assert spoken_inbox(priya, two, house) == "You have 2 boxes, the last left at 4:05 pm."
+
+
+def test_inbox_mine_blocking() -> None:
+    house = mkhouse(residents=INBOX_RESIDENTS)
+    priya = house.residents[0]
+    blocking = replace(
+        inbox_visit("priya", ms(1, 14, 14)),
+        box=facts_box("matched", recipient_id="priya", blocks_door=True),
+    )
+    assert spoken_inbox(priya, [blocking], house) == (
+        "You have a box at the door, left at 2:14 pm. It's leaning on the door."
+    )
+
+
+def test_inbox_claimed_boxes_do_not_count() -> None:
+    house = mkhouse(residents=INBOX_RESIDENTS)
+    priya = house.residents[0]
+    visits = [
+        inbox_visit("priya", ms(1, 9, 0), claimed_by="sam"),
+        inbox_visit("sam", ms(1, 10, 0), claimed_by="sam"),
+    ]
+    assert spoken_inbox(priya, visits, house) == "Nothing for you today."
+    mine_claimed = [inbox_visit("priya", ms(1, 9, 0), claimed_by="priya")]
+    assert spoken_inbox(priya, mine_claimed, house) == (
+        "You have a box at the door, left at 9:00 am."
+    )

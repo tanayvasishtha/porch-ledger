@@ -26,6 +26,7 @@ dist/
 .env.*
 !.env.example
 samconfig.toml
+.local/
 
 # OS junk
 Thumbs.db

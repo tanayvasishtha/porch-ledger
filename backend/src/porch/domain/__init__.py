@@ -1,6 +1,6 @@
 """Pure domain layer: no I/O; stdlib plus rapidfuzz only."""
 
-from porch.domain.copy import CardText, card_text
+from porch.domain.copy import CardText, card_text, spoken_inbox
 from porch.domain.engine import stitch
 from porch.domain.models import (
     BoxFacts,
@@ -76,6 +76,7 @@ __all__ = [
     "card_text",
     "door_check",
     "match_recipient",
+    "spoken_inbox",
     "stitch",
     "visit_id",
 ]

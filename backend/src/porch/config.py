@@ -85,6 +85,13 @@ class ApiSettings(BaseModel):
 
     media_url_ttl_s: int = Field(default=600, gt=0)
     poll_hint_ms: int = Field(default=5000, gt=0)
+    # None means open access; only acceptable for local replay development.
+    house_key_sha256: str | None = None
+    cors_origins: tuple[str, ...] = ()
+    house_file: Path = Path("fixtures/house.demo.json")
+    sqlite_path: Path = Path(".local/porch.db")
+    local_media_dir: Path = Path(".local/media")
+    public_base_url: str = "http://localhost:8000"
 
 
 class Settings(BaseSettings):

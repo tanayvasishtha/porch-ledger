@@ -4,11 +4,12 @@ All phrasing is fixed here: same input always produces the same strings.
 Times are rendered in the house timezone, 12-hour clock, lowercase am/pm.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from porch.domain.models import BoxFacts, House, Visit, VisitKind
+from porch.domain.models import BoxFacts, House, Resident, Visit, VisitKind
 
 MS_PER_MINUTE = 60_000
 NOON_HOUR = 12
@@ -114,3 +115,62 @@ def _description(visit: Visit, stopped_min: int) -> str:
     if visit.kind == VisitKind.CAR_STOPPED:
         return f"A car stopped outside for {stopped_min} min."
     return _DESCRIPTIONS[visit.kind]
+
+
+def spoken_inbox(resident: Resident, visits: Sequence[Visit], house: House) -> str:
+    """One deterministic sentence for 'is there anything for me today'."""
+    mine = [
+        v
+        for v in visits
+        if v.kind == VisitKind.DELIVERY
+        and v.box is not None
+        and v.box.recipient_id == resident.id
+        and v.claimed_by in (None, resident.id)
+    ]
+    others = [
+        v
+        for v in visits
+        if v.kind == VisitKind.DELIVERY
+        and v.box is not None
+        and v.box.recipient_state == "matched"
+        and v.box.recipient_id != resident.id
+        and v.claimed_by is None
+    ]
+    if mine:
+        last = max(mine, key=lambda v: v.start_ms)
+        at = _clock(_local(last.start_ms, ZoneInfo(house.timezone)))
+        sentence = (
+            f"You have a box at the door, left at {at}."
+            if len(mine) == 1
+            else f"You have {len(mine)} boxes, the last left at {at}."
+        )
+        if any(v.box is not None and v.box.blocks_door for v in mine):
+            sentence += " It's leaning on the door."
+        return sentence
+    if others:
+        return f"Nothing for you today. {_others_sentence(others, house)}"
+    return "Nothing for you today."
+
+
+def _others_sentence(others: list[Visit], house: House) -> str:
+    names: list[str] = []
+    for visit in sorted(others, key=lambda v: v.start_ms):
+        if visit.box is None:
+            continue
+        name = _resident_name(house, visit.box.recipient_id)
+        if name not in names:
+            names.append(name)
+    if len(others) == 1:
+        return f"There is a box for {names[0]}."
+    return f"There are boxes for {_and_join(names)}."
+
+
+def _resident_name(house: House, resident_id: str | None) -> str:
+    resident = next((r for r in house.residents if r.id == resident_id), None)
+    return resident.display_name if resident is not None else (resident_id or "someone")
+
+
+def _and_join(names: list[str]) -> str:
+    if len(names) <= 1:
+        return names[0]
+    return ", ".join(names[:-1]) + f" and {names[-1]}"

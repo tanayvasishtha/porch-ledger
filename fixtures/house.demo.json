@@ -1,0 +1,12 @@
+{
+  "id": "demo",
+  "timezone": "America/Los_Angeles",
+  "latitude": 47.6205,
+  "longitude": -122.3493,
+  "residents": [
+    {"id": "priya", "display_name": "Priya Shah", "aliases": ["P Shah"]},
+    {"id": "sam", "display_name": "Sam Okafor", "aliases": []},
+    {"id": "jo", "display_name": "Jo Lindqvist", "aliases": []}
+  ],
+  "door_polygon": [[0.05, 0.35], [0.38, 0.35], [0.38, 0.98], [0.05, 0.98]]
+}
