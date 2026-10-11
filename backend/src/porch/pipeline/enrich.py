@@ -31,6 +31,26 @@ from porch.ports import (
 _LABEL_KINDS = {VisitKind.DELIVERY, VisitKind.BOX_GONE}
 
 
+def needs_label(visit: Visit) -> bool:
+    """True when a label crop exists to OCR."""
+    return visit.kind in _LABEL_KINDS and visit.box is not None and visit.hero_media_key is not None
+
+
+def needs_door_check(visit: Visit) -> bool:
+    """True when the box can be checked against the door zone."""
+    return visit.kind == VisitKind.DELIVERY and visit.box is not None
+
+
+def needs_rain(visit: Visit) -> bool:
+    """True when a rain outlook changes the card."""
+    return visit.kind == VisitKind.DELIVERY
+
+
+def needs_clip(visit: Visit) -> bool:
+    """True when a clip exists to describe."""
+    return visit.clip_media_key is not None
+
+
 @dataclass(frozen=True, slots=True)
 class EnrichPorts:
     media: MediaStore
@@ -47,10 +67,10 @@ async def enrich(
     clock: Clock,
 ) -> Visit:
     """Run the gated steps in order and return the updated visit."""
-    visit = await _read_label(visit, house, ports, settings, clock)
-    visit = _check_door(visit, house, settings, clock)
-    visit = await _rain_outlook(visit, ports, settings, clock)
-    return await _describe_clip(visit, ports, clock)
+    visit = await read_label_step(visit, house, ports, settings, clock)
+    visit = check_door_step(visit, house, settings, clock)
+    visit = await rain_outlook_step(visit, ports, settings, clock)
+    return await describe_clip_step(visit, ports, clock)
 
 
 def _call(tool: str, ok: bool, start_ms: int, clock: Clock, note: str) -> ToolCall:
@@ -71,15 +91,16 @@ def _failed(visit: Visit, tool: str, start_ms: int, clock: Clock, exc: PortError
     return _with_call(visit, _call(tool, False, start_ms, clock, note))
 
 
-async def _read_label(
+async def read_label_step(
     visit: Visit,
     house: House,
     ports: EnrichPorts,
     settings: Settings,
     clock: Clock,
 ) -> Visit:
-    if visit.kind not in _LABEL_KINDS or visit.box is None or visit.hero_media_key is None:
+    if not needs_label(visit):
         return visit
+    assert visit.box is not None and visit.hero_media_key is not None
     start_ms = clock.now_ms()
     try:
         data = await ports.media.get(visit.hero_media_key)
@@ -120,14 +141,15 @@ def crop_label(data: bytes, box: NormBox, settings: Settings) -> bytes:
     return out.getvalue()
 
 
-def _check_door(
+def check_door_step(
     visit: Visit,
     house: House,
     settings: Settings,
     clock: Clock,
 ) -> Visit:
-    if visit.kind != VisitKind.DELIVERY or visit.box is None:
+    if not needs_door_check(visit):
         return visit
+    assert visit.box is not None
     start_ms = clock.now_ms()
     blocks, overlap = door_check(
         visit.box.box, house.door_polygon, settings.vision.door_block_overlap
@@ -137,13 +159,13 @@ def _check_door(
     return _with_call(replace(visit, box=box), call)
 
 
-async def _rain_outlook(
+async def rain_outlook_step(
     visit: Visit,
     ports: EnrichPorts,
     settings: Settings,
     clock: Clock,
 ) -> Visit:
-    if visit.kind != VisitKind.DELIVERY:
+    if not needs_rain(visit):
         return visit
     start_ms = clock.now_ms()
     try:
@@ -162,13 +184,14 @@ async def _rain_outlook(
     return _with_call(replace(visit, rain=risk), call)
 
 
-async def _describe_clip(
+async def describe_clip_step(
     visit: Visit,
     ports: EnrichPorts,
     clock: Clock,
 ) -> Visit:
-    if visit.clip_media_key is None:
+    if not needs_clip(visit):
         return visit
+    assert visit.clip_media_key is not None
     start_ms = clock.now_ms()
     try:
         description = await ports.describer.describe(visit.clip_media_key)

@@ -45,7 +45,7 @@ def mkclient(app: FastAPI) -> tuple[httpx2.AsyncClient, Transport]:
         base_url="http://localhost:8000",
         timeout=httpx2.Timeout(30.0, read=300.0),
     )
-    return http, streamable_http_client("http://localhost:8000/mcp/", http_client=http)
+    return http, streamable_http_client("http://localhost:8000/mcp", http_client=http)
 
 
 def seeded_ctx(tmp_path: Path, api: ApiSettings | None = None) -> AppContext:
@@ -64,7 +64,7 @@ def test_tools_contract_and_call(tmp_path: Path) -> None:
     async def scenario() -> None:
         async with app.state.mcp.session_manager.run():
             http, transport = mkclient(app)
-            async with http, Client(transport) as client:
+            async with http, Client(transport, mode="legacy") as client:
                 tools = await client.list_tools()
                 by_name = {t.name: t for t in tools.tools}
                 assert set(by_name) == TOOL_NAMES
@@ -123,7 +123,7 @@ def test_mcp_requires_key_when_configured(tmp_path: Path) -> None:
         async with app.state.mcp.session_manager.run():
             http, _transport = mkclient(app)
             async with http:
-                rejected = await http.post("http://localhost:8000/mcp/", json={})
+                rejected = await http.post("http://localhost:8000/mcp", json={})
                 assert rejected.status_code == 401
                 good = httpx2.AsyncClient(
                     transport=httpx2.ASGITransport(app=app),
@@ -133,9 +133,9 @@ def test_mcp_requires_key_when_configured(tmp_path: Path) -> None:
                 )
                 async with good:
                     transport = streamable_http_client(
-                        "http://localhost:8000/mcp/", http_client=good
+                        "http://localhost:8000/mcp", http_client=good
                     )
-                    async with Client(transport) as client:
+                    async with Client(transport, mode="legacy") as client:
                         tools = await client.list_tools()
                         assert {t.name for t in tools.tools} == TOOL_NAMES
 
@@ -149,7 +149,7 @@ def test_todays_visits_tool(tmp_path: Path) -> None:
     async def scenario() -> None:
         async with app.state.mcp.session_manager.run():
             http, transport = mkclient(app)
-            async with http, Client(transport) as client:
+            async with http, Client(transport, mode="legacy") as client:
                 all_visits = await client.call_tool("todays_visits", {})
                 assert not all_visits.is_error
                 ids = [c["id"] for c in all_visits.structured_content["result"]]

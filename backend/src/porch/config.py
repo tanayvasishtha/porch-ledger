@@ -84,6 +84,7 @@ class WeatherSettings(BaseModel):
 class AgentSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
+    enabled: bool = False
     model_id: str = "us.amazon.nova-lite-v1:0"
     max_tool_calls: int = Field(default=6, gt=0)
     timeout_s: int = Field(default=45, gt=0)

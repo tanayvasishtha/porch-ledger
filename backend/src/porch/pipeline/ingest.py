@@ -19,6 +19,7 @@ from porch.domain import (
     Visit,
     stitch,
 )
+from porch.pipeline.agent import PorchClerk
 from porch.pipeline.enrich import EnrichPorts, enrich
 from porch.pipeline.perception import perceive
 from porch.ports import Clock, EventSource, Labeler, MediaFetcher, MediaStore, Repository
@@ -62,9 +63,12 @@ class _EventMedia:
 
 
 class IngestService:
-    def __init__(self, ports: IngestPorts, config: IngestConfig) -> None:
+    def __init__(
+        self, ports: IngestPorts, config: IngestConfig, clerk: PorchClerk | None = None
+    ) -> None:
         self._ports = ports
         self._config = config
+        self._clerk = clerk
         self._pending: list[DoorEvent] = []
         self._state = PorchState()
 
@@ -149,13 +153,16 @@ class IngestService:
         out = []
         for visit in visits:
             with_clip = replace(visit, clip_media_key=self._clip_key(visit, stored))
-            out.append(
-                await enrich(
-                    with_clip,
-                    self._config.house,
-                    self._ports.enrich,
-                    self._config.settings,
-                    self._config.clock,
+            if self._clerk is not None:
+                out.append(await self._clerk.enrich(with_clip))
+            else:
+                out.append(
+                    await enrich(
+                        with_clip,
+                        self._config.house,
+                        self._ports.enrich,
+                        self._config.settings,
+                        self._config.clock,
+                    )
                 )
-            )
         return out

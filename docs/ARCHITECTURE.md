@@ -19,6 +19,7 @@
 - hypothesis: property tests for the pure engine and geometry code.
 - mypy: static types, strict mode, pydantic plugin.
 - ruff: lint and format in one tool.
+- strands-agents: agent loop and tool calling for the AWS Builder track; only the worker imports it.
 
 ## TV app dependencies (Gradle, tv/)
 

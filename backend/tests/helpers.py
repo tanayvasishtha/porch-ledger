@@ -1,11 +1,18 @@
 """Shared fakes and factories for adapter and API tests."""
 
+import asyncio
 import io
-from collections.abc import Sequence
+import json
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
+from typing import Any, TypeVar
 
 from PIL import Image
+from strands.models import Model
+from strands.types.content import Messages
+from strands.types.streaming import StreamEvent
+from strands.types.tools import ToolSpec
 
 from porch.domain import (
     Detection,
@@ -184,3 +191,92 @@ class FakeWeather:
         if self._error is not None:
             raise self._error
         return self._risk
+
+
+T = TypeVar("T")
+
+
+class ScriptedModel(Model):
+    """Strands Model that replays scripted turns then a text reply.
+
+    Each turn is a list of {"tool": name, "input": {...}} or {"text": "..."}
+    items. `policy` picks a turn from the messages when given. `sleep_s`
+    stalls the stream for timeout tests; `exc` makes the stream raise.
+    """
+
+    def __init__(
+        self,
+        turns: list[list[dict[str, Any]]] | None = None,
+        policy: Callable[[Messages], list[dict[str, Any]]] | None = None,
+        sleep_s: float = 0.0,
+        exc: Exception | None = None,
+    ) -> None:
+        self._turns = list(turns) if turns is not None else None
+        self._policy = policy
+        self._sleep = sleep_s
+        self._exc = exc
+        self._config: dict[str, Any] = {"model_id": "scripted"}
+        self.calls = 0
+        self.specs: list[str] = []
+
+    def get_config(self) -> dict[str, Any]:
+        return self._config
+
+    def update_config(self, **model_config: Any) -> None:
+        self._config.update(model_config)
+
+    async def structured_output(
+        self,
+        output_model: type[T],
+        prompt: Messages,
+        system_prompt: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[dict[str, T | Any], None]:
+        yield {"output": output_model()}
+
+    async def stream(
+        self,
+        messages: Messages,
+        tool_specs: list[ToolSpec] | None = None,
+        system_prompt: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[StreamEvent]:
+        if self._sleep:
+            await asyncio.sleep(self._sleep)
+        if self._exc is not None:
+            raise self._exc
+        self.calls += 1
+        if tool_specs:
+            self.specs = [spec["name"] for spec in tool_specs]
+        if self._policy is not None:
+            turn = self._policy(messages)
+        elif self._turns:
+            turn = self._turns.pop(0)
+        else:
+            turn = [{"text": "done"}]
+        use_tool = False
+        yield {"messageStart": {"role": "assistant"}}
+        for index, item in enumerate(turn):
+            if "tool" in item:
+                use_tool = True
+                yield {
+                    "contentBlockStart": {
+                        "start": {"toolUse": {"toolUseId": f"call{index}", "name": item["tool"]}}
+                    }
+                }
+                yield {
+                    "contentBlockDelta": {
+                        "delta": {"toolUse": {"input": json.dumps(item.get("input", {}))}}
+                    }
+                }
+                yield {"contentBlockStop": {}}
+            else:
+                yield {"contentBlockDelta": {"delta": {"text": item["text"]}}}
+                yield {"contentBlockStop": {}}
+        yield {"messageStop": {"stopReason": "tool_use" if use_tool else "end_turn"}}
+        yield {
+            "metadata": {
+                "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2},
+                "metrics": {"latencyMs": 1},
+            }
+        }

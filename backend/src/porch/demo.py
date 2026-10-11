@@ -22,6 +22,7 @@ from porch.api.deps import AppContext
 from porch.config import Settings
 from porch.domain import Detection, DoorEvent, NormBox, RainRisk, Visit, card_text
 from porch.mcp_server import build_mcp
+from porch.pipeline.agent import PorchClerk
 from porch.pipeline.enrich import EnrichPorts, crop_label
 from porch.pipeline.ingest import (
     IngestConfig,
@@ -147,7 +148,17 @@ async def echo_fixtures() -> dict[str, object]:
     }
 
 
-async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
+def demo_enrich_ports(tape: Tape, ctx: AppContext) -> EnrichPorts:
+    """The offline enrichment ports ingest_tape wires; shared with tests."""
+    return EnrichPorts(
+        media=ctx.media,
+        reader=_demo_reader(tape, ctx.settings),
+        describer=_NullDescriber(),
+        weather=_DemoWeather(),
+    )
+
+
+async def ingest_tape(ctx: AppContext, tape: Tape, clerk: PorchClerk | None = None) -> IngestReport:
     """One pass through IngestService with offline ports."""
     service = IngestService(
         ports=IngestPorts(
@@ -155,12 +166,7 @@ async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
             fetcher=TapeMediaFetcher(tape),
             media=ctx.media,
             labeler=_NullLabeler(),
-            enrich=EnrichPorts(
-                media=ctx.media,
-                reader=_demo_reader(tape, ctx.settings),
-                describer=_NullDescriber(),
-                weather=_DemoWeather(),
-            ),
+            enrich=demo_enrich_ports(tape, ctx),
             repo=ctx.repo,
         ),
         config=IngestConfig(
@@ -168,6 +174,7 @@ async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
             settings=ctx.settings,
             clock=ctx.clock,
         ),
+        clerk=clerk,
     )
     return await service.run_once()
 
