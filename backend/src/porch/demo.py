@@ -173,6 +173,7 @@ async def ingest_tape(ctx: AppContext, tape: Tape, clerk: PorchClerk | None = No
             house=ctx.house,
             settings=ctx.settings,
             clock=ctx.clock,
+            device_id=tape.events[0].device_id if tape.events else "demo",
         ),
         clerk=clerk,
     )

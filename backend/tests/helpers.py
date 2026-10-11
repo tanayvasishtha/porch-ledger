@@ -8,6 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, TypeVar
 
+from botocore.exceptions import ClientError
 from PIL import Image
 from strands.models import Model
 from strands.types.content import Messages
@@ -16,6 +17,7 @@ from strands.types.tools import ToolSpec
 
 from porch.domain import (
     Detection,
+    DeviceState,
     DoorEvent,
     House,
     RainRisk,
@@ -77,6 +79,7 @@ class FakeRepo:
         self._visits = {v.id: v for v in (visits or [])}
         self._versions: dict[str, int] = {}
         self._cursors: dict[str, int] = {}
+        self._device_states: dict[str, DeviceState] = {}
 
     async def save_visits(self, visits: list[Visit]) -> None:
         changed = False
@@ -121,6 +124,12 @@ class FakeRepo:
 
     async def set_cursor(self, device_id: str, ms: int) -> None:
         self._cursors[device_id] = ms
+
+    async def get_device_state(self, device_id: str) -> DeviceState | None:
+        return self._device_states.get(device_id)
+
+    async def set_device_state(self, device_id: str, state: DeviceState) -> None:
+        self._device_states[device_id] = state
 
 
 class FakeClock:
@@ -280,3 +289,69 @@ class ScriptedModel(Model):
                 "metrics": {"latencyMs": 1},
             }
         }
+
+
+class FakeDynamoClient:
+    """In-memory subset of DynamoDB for DynamoRepository contract tests.
+
+    Methods take the boto keyword style via **kwargs; the two
+    ConditionExpression forms the repo uses are enforced so a broken
+    conditional write fails like the real service would.
+    """
+
+    def __init__(self) -> None:
+        self.items: dict[tuple[str, str], dict[str, Any]] = {}
+
+    def _check(
+        self, condition: str | None, key: tuple[str, str], values: dict[str, Any] | None
+    ) -> None:
+        if condition == "attribute_not_exists(PK)":
+            if key in self.items:
+                raise _conditional_failed()
+        elif condition == "#v = :expected":
+            stored = self.items.get(key)
+            expected = values[":expected"]["N"] if values else None
+            if stored is None or stored["version"]["N"] != expected:
+                raise _conditional_failed()
+
+    def get_item(self, **kwargs: Any) -> dict[str, Any]:
+        key = kwargs["Key"]
+        item = self.items.get((key["PK"]["S"], key["SK"]["S"]))
+        return {"Item": dict(item)} if item is not None else {}
+
+    def put_item(self, **kwargs: Any) -> dict[str, Any]:
+        item = kwargs["Item"]
+        key = (item["PK"]["S"], item["SK"]["S"])
+        self._check(
+            kwargs.get("ConditionExpression"),
+            key,
+            kwargs.get("ExpressionAttributeValues"),
+        )
+        self.items[key] = dict(item)
+        return {}
+
+    def update_item(self, **kwargs: Any) -> dict[str, Any]:
+        key_arg = kwargs["Key"]
+        key = (key_arg["PK"]["S"], key_arg["SK"]["S"])
+        item = self.items.setdefault(key, {})
+        current = int(item.get("version", {"N": "0"})["N"])
+        new = current + int(kwargs["ExpressionAttributeValues"][":one"]["N"])
+        item["version"] = {"N": str(new)}
+        return {"Attributes": {"version": {"N": str(new)}}}
+
+    def query(self, **kwargs: Any) -> dict[str, Any]:
+        values = kwargs["ExpressionAttributeValues"]
+        pk, lo, hi = values[":pk"]["S"], values[":lo"]["S"], values[":hi"]["S"]
+        found = [
+            item
+            for (item_pk, item_sk), item in self.items.items()
+            if item_pk == pk and lo <= item_sk < hi
+        ]
+        return {"Items": sorted(found, key=lambda i: i["SK"]["S"])}
+
+
+def _conditional_failed() -> ClientError:
+    return ClientError(
+        {"Error": {"Code": "ConditionalCheckFailedException", "Message": "failed"}},
+        "PutItem",
+    )

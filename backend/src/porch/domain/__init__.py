@@ -34,6 +34,7 @@ from porch.domain.models import (
     visit_id,
 )
 from porch.domain.porch_state import (
+    DeviceState,
     EngineParams,
     PorchState,
     StitchResult,
@@ -47,6 +48,7 @@ __all__ = [
     "CardText",
     "Detection",
     "DetectionLabel",
+    "DeviceState",
     "DomainError",
     "DoorEvent",
     "DuplicateResidentError",

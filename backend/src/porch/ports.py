@@ -11,6 +11,7 @@ from typing import Protocol
 
 from porch.domain import (
     Detection,
+    DeviceState,
     DoorEvent,
     FetchedClip,
     FetchedSnapshot,
@@ -113,6 +114,12 @@ class Repository(Protocol):
         ...
 
     async def set_cursor(self, device_id: str, ms: int) -> None: ...
+
+    async def get_device_state(self, device_id: str) -> DeviceState | None:
+        """Stitch state + pending events so a stateless worker resumes."""
+        ...
+
+    async def set_device_state(self, device_id: str, state: DeviceState) -> None: ...
 
 
 class Clock(Protocol):

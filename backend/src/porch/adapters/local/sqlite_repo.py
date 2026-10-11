@@ -15,8 +15,8 @@ from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 
-from porch.adapters.codec import dumps_visit, loads_visit
-from porch.domain import Visit
+from porch.adapters.codec import dumps_device_state, dumps_visit, loads_device_state, loads_visit
+from porch.domain import DeviceState, Visit
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS visits (
@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS houses (
 CREATE TABLE IF NOT EXISTS cursors (
     device_id TEXT PRIMARY KEY,
     ms INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS device_states (
+    device_id TEXT PRIMARY KEY,
+    body TEXT NOT NULL
 );
 """
 
@@ -70,6 +74,12 @@ class SqliteRepository:
 
     async def set_cursor(self, device_id: str, ms: int) -> None:
         await asyncio.to_thread(self._set_cursor, device_id, ms)
+
+    async def get_device_state(self, device_id: str) -> DeviceState | None:
+        return await asyncio.to_thread(self._get_device_state, device_id)
+
+    async def set_device_state(self, device_id: str, state: DeviceState) -> None:
+        await asyncio.to_thread(self._set_device_state, device_id, state)
 
     def _connect(self) -> sqlite3.Connection:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,4 +177,18 @@ class SqliteRepository:
             conn.execute(
                 "INSERT OR REPLACE INTO cursors (device_id, ms) VALUES (?, ?)",
                 (device_id, ms),
+            )
+
+    def _get_device_state(self, device_id: str) -> DeviceState | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT body FROM device_states WHERE device_id = ?", (device_id,)
+            ).fetchone()
+            return loads_device_state(row[0]) if row is not None else None
+
+    def _set_device_state(self, device_id: str, state: DeviceState) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO device_states (device_id, body) VALUES (?, ?)",
+                (device_id, dumps_device_state(state)),
             )

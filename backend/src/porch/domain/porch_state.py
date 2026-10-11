@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from porch.domain.models import NormBox, Visit
+from porch.domain.models import DoorEvent, NormBox, Visit
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,3 +35,16 @@ class StitchResult:
     visits: tuple[Visit, ...]
     pending_event_ids: tuple[str, ...]
     state: PorchState
+    pending_events: tuple[DoorEvent, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class DeviceState:
+    """Everything a stateless worker needs to resume stitching.
+
+    Persisted per device so a fresh Lambda picks up mid-stitch.
+    """
+
+    porch: PorchState
+    pending_event_ids: tuple[str, ...]
+    pending_events: tuple["DoorEvent", ...] = ()

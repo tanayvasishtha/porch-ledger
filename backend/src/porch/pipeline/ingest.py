@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 from porch.adapters.tape import TapeSnapshot
 from porch.config import Settings, from_settings
 from porch.domain import (
+    DeviceState,
     DoorEvent,
     FetchedSnapshot,
     House,
@@ -52,6 +53,7 @@ class IngestConfig:
     house: House
     settings: Settings
     clock: Clock
+    device_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,8 +73,10 @@ class IngestService:
         self._clerk = clerk
         self._pending: list[DoorEvent] = []
         self._state = PorchState()
+        self._state_loaded = False
 
     async def run_once(self) -> IngestReport:
+        await self._load_state()
         events = await self._ports.source.poll()
         buffered = [*self._pending, *events]
         if not buffered:
@@ -90,6 +94,7 @@ class IngestService:
         pending_ids = set(result.pending_event_ids)
         self._pending = [e for e in buffered if e.id in pending_ids]
         self._state = result.state
+        await self._save_state()
         visits = await self._enrich_all(result.visits, stored)
         await self._ports.repo.save_visits(visits)
         return IngestReport(
@@ -97,6 +102,26 @@ class IngestService:
             snapshots=snap_count,
             visits_closed=len(visits),
             pending=len(self._pending),
+        )
+
+    async def _load_state(self) -> None:
+        """Resume stitch state from the repo; in-memory from then on."""
+        if self._state_loaded:
+            return
+        self._state_loaded = True
+        stored = await self._ports.repo.get_device_state(self._config.device_id)
+        if stored is not None:
+            self._state = stored.porch
+            self._pending = list(stored.pending_events)
+
+    async def _save_state(self) -> None:
+        await self._ports.repo.set_device_state(
+            self._config.device_id,
+            DeviceState(
+                porch=self._state,
+                pending_event_ids=tuple(e.id for e in self._pending),
+                pending_events=tuple(self._pending),
+            ),
         )
 
     async def _store_media(
