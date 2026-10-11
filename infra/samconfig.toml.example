@@ -1,0 +1,10 @@
+# Copy to infra/samconfig.toml (gitignored) and fill in real values.
+version = 0.1
+[default.deploy.parameters]
+stack_name = "porch-ledger"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+s3_prefix = "porch-ledger"
+parameter_overrides = "HouseId=demo RingDeviceId=\"\" ScheduleEnabled=false AlertEmail=\"you@example.com\" AllowedOrigin=\"*\""

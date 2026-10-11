@@ -27,6 +27,9 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest --cov=porch.domain --cov=porch.adapters --cov=porch.api --cov-report=term-missing --cov-fail-under=90
       - run: uv run python -m porch export-contracts --out ../contracts && git -C .. diff --exit-code contracts
+      - name: SAM template lint
+        run: uvx --from aws-sam-cli sam validate --lint -t infra/template.yaml
+        working-directory: ${{ github.workspace }}
 
   tv:
     # Screenshot goldens are recorded on Windows; font rasterisation differs on Linux.

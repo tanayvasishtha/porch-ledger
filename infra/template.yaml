@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Porch Ledger - API + worker on Lambda, DynamoDB state, S3 media, Echo web client.
+
+Parameters:
+  HouseId:
+    Type: String
+    Default: demo
+  RingDeviceId:
+    Type: String
+    Default: ""
+    Description: Ring device to poll; empty means the first device on the account.
+  ScheduleEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Starts the once-a-minute ingest schedule. Enable only with a Ring token in SSM.
+  AlertEmail:
+    Type: String
+    Description: Budget alert recipient; required.
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS origin for the API; set to the CloudFront URL in production.
+
+Conditions:
+  DoSchedule: !Equals [!Ref ScheduleEnabled, "true"]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    Timeout: 10
+    MemorySize: 512
+    Tracing: Active
+    Environment:
+      Variables:
+        PORCH_MODE: live
+        PORCH_HOUSE_ID: !Ref HouseId
+        PORCH_AWS__TABLE_NAME: !Ref PorchTable
+        PORCH_AWS__MEDIA_BUCKET: !Ref MediaBucket
+        PORCH_AWS__REGION: !Ref AWS::Region
+        PORCH_RING__DEVICE_ID: !Ref RingDeviceId
+
+Resources:
+  # --- HTTP API -------------------------------------------------------------
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
+        AllowHeaders:
+          - authorization
+          - content-type
+          - mcp-protocol-version
+          - mcp-session-id
+        ExposeHeaders:
+          - etag
+          - mcp-session-id
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      # Lambda Web Adapter: the wrapper runs run.sh, which starts uvicorn.
+      Handler: run.sh
+      CodeUri: ../.build/lambda.zip
+      Layers:
+        # AWS-managed Lambda Web Adapter layer (arm64).
+        - !Sub "arn:aws:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerArm64:25"
+      Environment:
+        Variables:
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+          AWS_LWA_PORT: "8080"
+          PORT: "8080"
+          # The API Gateway host is the only host the MCP transport trusts;
+          # pydantic parses the JSON array form.
+          PORCH_API__ALLOWED_HOSTS: !Sub
+            - '["${ApiId}.execute-api.${AWS::Region}.amazonaws.com"]'
+            - ApiId: !Ref HttpApi
+          PORCH_API__PUBLIC_BASE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+          PORCH_API__CORS_ORIGINS: !Sub '["${AllowedOrigin}"]'
+      Policies:
+        - Statement:
+            - Sid: TableCrud
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:BatchGetItem
+                - dynamodb:BatchWriteItem
+              Resource:
+                - !GetAtt PorchTable.Arn
+                - !Sub "${PorchTable.Arn}/index/*"
+            - Sid: MediaObjects
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+              Resource: !Sub "${MediaBucket.Arn}/*"
+            - Sid: Secrets
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/porch/*"
+            - Sid: SecretDecrypt
+              Effect: Allow
+              Action: kms:Decrypt
+              Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+              Condition:
+                StringEquals:
+                  # AWS-managed key used only through the SSM service.
+                  "kms:ViaService": !Sub "ssm.${AWS::Region}.amazonaws.com"
+
+  # Explicit wiring avoids the Function Events -> HttpApi circular dep:
+  # ApiFunction env vars reference the API host for the MCP host allowlist.
+  # (SAM still synthesizes the $default auto-deploy stage on HttpApi.)
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  ApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: ANY /{proxy+}
+      Target: !Sub "integrations/${ApiIntegration}"
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  # --- Ingest worker ---------------------------------------------------------
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: porch.aws_lambda.ingest_handler
+      CodeUri: ../.build/lambda.zip
+      MemorySize: 1024
+      Timeout: 120
+      Policies:
+        - Statement:
+            - Sid: TableCrud
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:BatchGetItem
+                - dynamodb:BatchWriteItem
+              Resource:
+                - !GetAtt PorchTable.Arn
+                - !Sub "${PorchTable.Arn}/index/*"
+            - Sid: MediaObjects
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+              Resource: !Sub "${MediaBucket.Arn}/*"
+            - Sid: Vision
+              Effect: Allow
+              Action:
+                - rekognition:DetectLabels
+                - textract:DetectDocumentText
+                - polly:SynthesizeSpeech
+              Resource: "*"
+            - Sid: NovaModel
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:Converse
+              Resource:
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-lite-v1:0"
+                - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-lite-v1:0"
+            - Sid: Secrets
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/porch/*"
+            - Sid: SecretDecrypt
+              Effect: Allow
+              Action: kms:Decrypt
+              Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+              Condition:
+                StringEquals:
+                  "kms:ViaService": !Sub "ssm.${AWS::Region}.amazonaws.com"
+
+  IngestSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: porch-ledger-ingest
+      ScheduleExpression: rate(1 minute)
+      State: !If [DoSchedule, ENABLED, DISABLED]
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !GetAtt WorkerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: "{}"
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-worker
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt WorkerFunction.Arn
+
+  # --- Data -------------------------------------------------------------------
+  PorchTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-media
+            Status: Enabled
+            ExpirationInDays: 14
+
+  # --- Echo web client ---------------------------------------------------------
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  WebOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: porch-ledger-web
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        Origins:
+          - Id: web
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !Ref WebOac
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: web
+          ViewerProtocolPolicy: https-only
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+        PriceClass: PriceClass_100
+
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${WebBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}"
+
+  # --- Cost guardrail ----------------------------------------------------------
+  SpendBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: porch-ledger-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 5
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  McpUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/mcp"
+  EchoUrl:
+    Value: !Sub "https://${WebDistribution.DomainName}"
+  WebBucket:
+    Value: !Ref WebBucket
+  DistributionId:
+    Value: !Ref WebDistribution
+  MediaBucket:
+    Value: !Ref MediaBucket
+  TableName:
+    Value: !Ref PorchTable

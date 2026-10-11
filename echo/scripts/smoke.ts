@@ -1,6 +1,6 @@
 /// <reference types="node" />
 // CI smoke: connect to a running demo server and ask for Priya's inbox.
-// Run with `pnpm exec vite-node scripts/smoke.ts` while
+// Run with `node scripts/smoke.ts` (Node 24 strips the types) while
 // `uv run python -m porch demo --serve` is up.
 
 import { MCP_PROTOCOL, PorchMcp } from '../src/mcp.ts';
