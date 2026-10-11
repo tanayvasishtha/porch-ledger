@@ -77,7 +77,7 @@ def _call(tool: str, ok: bool, start_ms: int, clock: Clock, note: str) -> ToolCa
     return ToolCall(
         tool=tool,
         ok=ok,
-        latency_ms=max(0, clock.now_ms() - start_ms),
+        latency_ms=max(0, clock.monotonic_ms() - start_ms),
         note=note,
     )
 
@@ -101,7 +101,7 @@ async def read_label_step(
     if not needs_label(visit):
         return visit
     assert visit.box is not None and visit.hero_media_key is not None
-    start_ms = clock.now_ms()
+    start_ms = clock.monotonic_ms()
     try:
         data = await ports.media.get(visit.hero_media_key)
         lines = await ports.reader.read(crop_label(data, visit.box.box, settings))
@@ -150,7 +150,7 @@ def check_door_step(
     if not needs_door_check(visit):
         return visit
     assert visit.box is not None
-    start_ms = clock.now_ms()
+    start_ms = clock.monotonic_ms()
     blocks, overlap = door_check(
         visit.box.box, house.door_polygon, settings.vision.door_block_overlap
     )
@@ -167,7 +167,7 @@ async def rain_outlook_step(
 ) -> Visit:
     if not needs_rain(visit):
         return visit
-    start_ms = clock.now_ms()
+    start_ms = clock.monotonic_ms()
     try:
         risk = await ports.weather.max_rain_probability_pct(settings.weather.rain_horizon_h)
     except PortError as exc:
@@ -192,7 +192,7 @@ async def describe_clip_step(
     if not needs_clip(visit):
         return visit
     assert visit.clip_media_key is not None
-    start_ms = clock.now_ms()
+    start_ms = clock.monotonic_ms()
     try:
         description = await ports.describer.describe(visit.clip_media_key)
     except PortError as exc:

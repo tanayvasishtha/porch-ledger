@@ -3,6 +3,7 @@
 import asyncio
 import io
 import json
+import time
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -138,6 +139,9 @@ class FakeClock:
 
     def now_ms(self) -> int:
         return self.current
+
+    def monotonic_ms(self) -> int:
+        return time.monotonic_ns() // 1_000_000
 
 
 def make_jpeg(width: int = 200, height: int = 200, color: str = "gray") -> bytes:

@@ -42,4 +42,7 @@ def test_golden_visit_bodies(tmp_path: Path) -> None:
         priya = next(c for c in listing["cards"] if "Box for Priya Shah" in c["facts"])
         detail = client.get(f"/v1/visits/{priya['id']}").json()
     _golden("visit_list.json", listing)
+    # Trace latencies are real monotonic timings; they vary run to run.
+    for call in detail["trace"]:
+        call["latency_ms"] = 0
     _golden("visit_detail.json", detail)

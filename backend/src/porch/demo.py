@@ -9,6 +9,7 @@ and weather is a fixed 70% by 4:00 pm.
 import hashlib
 import os
 import tempfile
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +45,10 @@ class FixedClock:
 
     def now_ms(self) -> int:
         return self.at_ms
+
+    def monotonic_ms(self) -> int:
+        # Latency measurement still needs a real timer in replay.
+        return time.monotonic_ns() // 1_000_000
 
 
 def demo_clock(tape: Tape) -> FixedClock:

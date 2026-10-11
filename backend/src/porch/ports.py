@@ -126,3 +126,7 @@ class Clock(Protocol):
     """Injected wall clock; faked in tests, real elsewhere."""
 
     def now_ms(self) -> int: ...
+
+    def monotonic_ms(self) -> int:
+        """Durations only: unaffected by a fixed wall clock or NTP jumps."""
+        ...

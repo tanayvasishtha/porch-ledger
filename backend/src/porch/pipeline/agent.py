@@ -98,6 +98,7 @@ class PorchClerk:
 
     async def enrich(self, visit: Visit) -> Visit:
         """Run the agent; on any failure fall back to deterministic enrich."""
+        started = self._clock.monotonic_ms()
         working = _Working(visit)
         counter = _ToolCounter(self._settings.agent.max_tool_calls)
         agent = Agent(
@@ -135,7 +136,7 @@ class PorchClerk:
                     ToolCall(
                         tool="agent",
                         ok=False,
-                        latency_ms=0,
+                        latency_ms=max(0, self._clock.monotonic_ms() - started),
                         note=f"fallback: {reason}",
                     ),
                 ),
@@ -148,7 +149,7 @@ class PorchClerk:
                 ToolCall(
                     tool="agent",
                     ok=True,
-                    latency_ms=0,
+                    latency_ms=max(0, self._clock.monotonic_ms() - started),
                     note=f"{counter.count} tools",
                 ),
             ),

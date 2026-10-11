@@ -120,8 +120,19 @@ export function App({ client }: { client: PorchMcp | null }) {
   return (
     <main class="screen">
       <header class="masthead">
-        <h1>{house?.name ?? 'Porch Ledger'}</h1>
-        <span class="date">{selected?.inbox.day_label ?? house?.day_label ?? ''}</span>
+        <div class="masthead-text">
+          <h1>{house?.name ?? 'Porch Ledger'}</h1>
+          <span class="date">{selected?.inbox.day_label ?? house?.day_label ?? ''}</span>
+        </div>
+        <button
+          class="mute-pill"
+          type="button"
+          aria-pressed={muted}
+          aria-label={muted ? 'Unmute voice' : 'Mute voice'}
+          onClick={toggleMute}
+        >
+          {muted ? 'Voice off' : 'Voice on'}
+        </button>
       </header>
       <nav class="residents" aria-label="Residents">
         {(house?.residents ?? []).map((resident) => (
@@ -179,7 +190,7 @@ export function App({ client }: { client: PorchMcp | null }) {
                   <span
                     key={fact}
                     class="fact"
-                    data-tone={/door|rain/i.test(fact) ? 'warn' : 'plain'}
+                    data-tone={factTone(fact, card, selected.residentId)}
                   >
                     {fact}
                   </span>
@@ -198,18 +209,15 @@ export function App({ client }: { client: PorchMcp | null }) {
           </article>
         ))}
       </section>
-      <button
-        class="mute-pill"
-        type="button"
-        aria-pressed={muted}
-        aria-label={muted ? 'Unmute voice' : 'Mute voice'}
-        onClick={toggleMute}
-      >
-        {muted ? 'Voice off' : 'Voice on'}
-      </button>
       <footer class="footer">Simulated Alexa+ screen. Talks to the Porch Ledger MCP server.</footer>
     </main>
   );
+}
+
+// Sage names the person viewing; terracotta stays for warnings.
+function factTone(fact: string, card: VisitCard, residentId: string): string {
+  if (card.recipient_id === residentId && /Box for /.test(fact)) return 'mine';
+  return /door|rain/i.test(fact) ? 'warn' : 'plain';
 }
 
 // Media URLs from the server are relative; resolve them at the MCP origin.

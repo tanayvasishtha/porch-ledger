@@ -56,14 +56,21 @@ body {
 
 .masthead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+}
+
+.masthead-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .masthead h1 {
   font-family: 'Fraunces', serif;
   font-size: 44px;
   font-weight: 600;
+  line-height: 1.1;
 }
 
 .masthead .date {
@@ -90,10 +97,10 @@ body {
   cursor: pointer;
 }
 
-/* Sage marks the resident who is listening right now ("for you"). */
+/* Amber is the primary selection; sage belongs to "for you" facts. */
 .resident-chip[data-selected='true'] {
-  border-color: var(--sage);
-  background: var(--sage);
+  border-color: var(--amber);
+  background: var(--amber);
 }
 
 .resident-chip:focus-visible,
@@ -179,8 +186,11 @@ body {
   color: var(--terracotta);
 }
 
-.fact[data-tone='sage'] {
+/* Sage fill: this fact names the resident currently viewing. */
+.fact[data-tone='mine'] {
   border-color: var(--sage);
+  background: var(--sage);
+  color: var(--ink);
 }
 
 .action {
@@ -221,9 +231,8 @@ body {
 }
 
 .mute-pill {
-  position: absolute;
-  top: 30px;
-  right: 44px;
+  align-self: center;
+  flex-shrink: 0;
   min-height: 44px;
   padding: 0 22px;
   border: 2px solid var(--muted);

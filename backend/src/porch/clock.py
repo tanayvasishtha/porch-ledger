@@ -8,3 +8,6 @@ from porch.ports import Clock
 class SystemClock(Clock):
     def now_ms(self) -> int:
         return int(time.time() * 1000)
+
+    def monotonic_ms(self) -> int:
+        return time.monotonic_ns() // 1_000_000

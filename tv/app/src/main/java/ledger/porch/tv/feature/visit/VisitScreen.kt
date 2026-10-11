@@ -298,7 +298,7 @@ private fun TraceRow(call: ToolCallOut) {
         Text(
             text =
                 if (call.ok) {
-                    "${call.latencyMs} ms"
+                    if (call.latencyMs == 0L) "under 1 ms" else "${call.latencyMs} ms"
                 } else {
                     call.note.ifEmpty { "failed" }
                 },

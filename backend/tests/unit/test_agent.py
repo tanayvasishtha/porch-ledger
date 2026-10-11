@@ -118,7 +118,16 @@ def test_agent_matches_deterministic_for_the_demo_day(tmp_path: Path) -> None:
         actual = acted[visit_id]
         assert actual.trace[-1].tool == "agent"
         assert actual.trace[-1].ok is True
-        assert replace(actual, trace=actual.trace[:-1]) == expected
+        # Tool latencies are real monotonic timings, not comparable.
+        normalized = replace(
+            actual,
+            trace=tuple(replace(call, latency_ms=0) for call in actual.trace[:-1]),
+        )
+        baseline_norm = replace(
+            expected,
+            trace=tuple(replace(call, latency_ms=0) for call in expected.trace),
+        )
+        assert normalized == baseline_norm
 
 
 def test_tool_limit_falls_back(tmp_path: Path) -> None:
