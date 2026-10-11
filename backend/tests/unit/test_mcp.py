@@ -18,8 +18,8 @@ from porch.domain import BoxFacts, NormBox, Visit, VisitKind
 from tests.helpers import mkvisit
 from tests.unit.test_api import mkctx
 
-TOOL_NAMES = {"anything_for_me", "todays_visits", "visit_detail", "claim_box"}
-READ_TOOLS = {"anything_for_me", "todays_visits", "visit_detail"}
+TOOL_NAMES = {"anything_for_me", "todays_visits", "visit_detail", "claim_box", "residents"}
+READ_TOOLS = {"anything_for_me", "todays_visits", "visit_detail", "residents"}
 
 NOW_MS = int(datetime(2026, 6, 1, 19, 0, tzinfo=ZoneInfo("UTC")).timestamp() * 1000)
 

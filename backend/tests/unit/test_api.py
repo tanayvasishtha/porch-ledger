@@ -5,12 +5,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
+from mcp import Client
 
 from porch.adapters.local import FileMediaStore
 from porch.api.app import create_app
 from porch.api.deps import AppContext
 from porch.config import ApiSettings, Settings
 from porch.domain import Visit, VisitKind
+from porch.mcp_server import build_mcp
 from tests.helpers import FakeClock, FakeRepo, demo_house, mkvisit
 
 LA = ZoneInfo("America/Los_Angeles")
@@ -170,3 +172,30 @@ def test_visit_detail_and_residents(tmp_path: Path) -> None:
     residents = client.get("/v1/houses/demo/residents")
     assert residents.status_code == 200
     assert [r["id"] for r in residents.json()] == ["priya", "sam", "jo"]
+
+
+def test_cors_preflight_on_mcp(tmp_path: Path) -> None:
+    ctx = mkctx(tmp_path, api=ApiSettings(cors_origins=("http://localhost:5173",)))
+    client = client_for(ctx)
+    response = client.options(
+        "/mcp",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type, mcp-protocol-version",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "mcp-protocol-version" in response.headers["access-control-allow-headers"]
+
+
+def test_mcp_lists_residents_tool(tmp_path: Path) -> None:
+    """The Echo client needs a roster over MCP without touching REST."""
+
+    async def tools() -> list[str]:
+        async with Client(build_mcp(mkctx(tmp_path))) as mcp:
+            result = await mcp.list_tools()
+        return [t.name for t in result.tools]
+
+    assert "residents" in asyncio.run(tools())

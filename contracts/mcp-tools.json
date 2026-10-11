@@ -597,6 +597,55 @@
   },
   {
     "annotations": {
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
+    "description": "The household roster: id and display name per resident.",
+    "input_schema": {
+      "properties": {},
+      "title": "residentsArguments",
+      "type": "object"
+    },
+    "name": "residents",
+    "output_schema": {
+      "$defs": {
+        "ResidentOut": {
+          "properties": {
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "display_name"
+          ],
+          "title": "ResidentOut",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "result": {
+          "items": {
+            "$ref": "#/$defs/ResidentOut"
+          },
+          "title": "Result",
+          "type": "array"
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "title": "residentsOutput",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "open_world_hint": false
     },
     "description": "Mark a delivery as claimed by a resident.",

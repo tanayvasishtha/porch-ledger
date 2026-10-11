@@ -51,7 +51,7 @@ def create_app(ctx: AppContext) -> FastAPI:
     mcp = build_mcp(ctx)
     # Stateless JSON responses: no sessions to leak between requests.
     mcp_http = mcp.streamable_http_app(
-        streamable_http_path="/",
+        streamable_http_path="/mcp",
         stateless_http=True,
         json_response=True,
     )
@@ -73,14 +73,15 @@ def create_app(ctx: AppContext) -> FastAPI:
             allow_origins=list(origins),
             allow_methods=["*"],
             allow_headers=["*"],
+            # The MCP transport echoes these on responses; browsers must see them.
+            expose_headers=["mcp-session-id", "mcp-protocol-version"],
         )
     app.add_exception_handler(HTTPException, _http_exception_handler)
     app.add_exception_handler(RequestValidationError, _validation_handler)
     app.include_router(health_router)
     app.include_router(router, dependencies=[Depends(bearer_guard)])
     app.include_router(webhook_router)
-    app.mount(
-        "/mcp",
-        BearerASGIMiddleware(mcp_http, ctx.settings.api.house_key_sha256),
-    )
+    # Mount at "/" so bare /mcp answers directly; a trailing-slash 307
+    # breaks browser CORS preflights, which fetch cannot follow.
+    app.mount("/", BearerASGIMiddleware(mcp_http, ctx.settings.api.house_key_sha256))
     return app

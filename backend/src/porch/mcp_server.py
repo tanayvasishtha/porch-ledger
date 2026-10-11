@@ -7,7 +7,7 @@ from mcp.types import ToolAnnotations
 from porch.api import cards
 from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext
-from porch.api.schemas import Inbox, VisitCard, VisitDetail
+from porch.api.schemas import Inbox, ResidentOut, VisitCard, VisitDetail
 from porch.domain import Resident, Visit, VisitKind, spoken_inbox
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
@@ -75,6 +75,11 @@ def build_mcp(ctx: AppContext) -> MCPServer:
             msg = f"unknown visit: {visit_id}"
             raise ToolError(msg)
         return cards.to_detail(visit, ctx)
+
+    @mcp.tool(annotations=_READ_ONLY)
+    async def residents() -> list[ResidentOut]:
+        """The household roster: id and display name per resident."""
+        return [ResidentOut(id=r.id, display_name=r.display_name) for r in ctx.house.residents]
 
     @mcp.tool(annotations=_CLOSED)
     async def claim_box(visit_id: str, resident_id: str) -> VisitCard:

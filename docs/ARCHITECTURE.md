@@ -31,3 +31,13 @@
 - Roborazzi + Robolectric + coil-test: JVM screenshot and focus tests, goldens in tv/app/src/test/screenshots.
 - Turbine + kotlinx-coroutines-test: StateFlow assertions in ViewModel tests.
 - Spotless (ktlint) + detekt: TV code style and complexity gates; detekt runs on main sources only.
+
+## Echo client dependencies (pnpm, echo/)
+
+- Vite + Preact: minimal UI runtime for the iPad screen; the bundle stays under 120 KB gzip.
+- @modelcontextprotocol/client: official TypeScript MCP client, Streamable HTTP transport, protocol pinned to 2025-11-25.
+- Biome: lint and format in one tool, matching the ruff role on the backend.
+- Vitest + @testing-library/preact + jsdom: unit tests for the type guards and the App.
+- TypeScript 5.9: the 7.x line is the preview rewrite; 5.9 is the last stable series Vite and the presets target.
+- Fraunces + Source Sans 3 WOFF2: same OFL typefaces as the TV app, converted with fonttools.
+
