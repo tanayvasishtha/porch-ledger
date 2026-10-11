@@ -67,6 +67,7 @@ class VisitDetail(VisitCard):
     box: BoxOut | None
     door_overlap: float | None
     trace: list[ToolCallOut]
+    door_polygon: list[list[float]] | None
 
 
 class ResidentOut(BaseModel):

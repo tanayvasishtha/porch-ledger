@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -44,6 +45,7 @@ class FocusTest {
         cards: List<VisitCard>,
         initial: String,
         onSelect: (String) -> Unit = {},
+        onOpen: (String, Boolean) -> Unit = { _, _ -> },
     ) {
         composeRule.setContent {
             PorchTheme {
@@ -60,6 +62,7 @@ class FocusTest {
                         offline = false,
                         onSelect = onSelect,
                         onClaim = {},
+                        onOpenDetail = onOpen,
                     )
                 }
             }
@@ -68,26 +71,36 @@ class FocusTest {
     }
 
     @Test
-    fun `delivery focuses primary action, rail moves selection, up returns`() {
-        var selected by mutableStateOf(PRIYA.id)
-        setTodayContent(sampleCards(), PRIYA.id) { selected = it }
+    fun `hero image opens details before the actions`() {
+        var opened: Pair<String, Boolean>? = null
+        setTodayContent(sampleCards(), PRIYA.id, onOpen = { id, auto -> opened = id to auto })
 
-        composeRule.onNodeWithText("It's mine").assertIsFocused()
+        composeRule
+            .onNodeWithContentDescription("Open details")
+            .assertIsFocused()
+        key(Key.DirectionCenter)
+        assertEquals(PRIYA.id to false, opened)
+    }
+
+    @Test
+    fun `delivery focuses image, rail moves selection, up returns to image`() {
+        var selected by mutableStateOf(PRIYA.id)
+        setTodayContent(sampleCards(), PRIYA.id, onSelect = { selected = it })
+
+        composeRule
+            .onNodeWithContentDescription("Open details")
+            .assertIsFocused()
 
         key(Key.DirectionDown)
+        // The image sits above the rail's left edge; the first chip gets it.
+        composeRule.onNodeWithText("11:05 to 11:06 am · Delivery").assertIsFocused()
         key(Key.DirectionRight)
         key(Key.DirectionRight)
         assertEquals(VISITOR.id, selected)
 
         key(Key.DirectionUp)
-        composeRule.onNodeWithText("It's mine").assertIsFocused()
-    }
-
-    @Test
-    fun `card without actions focuses its rail chip`() {
-        setTodayContent(listOf(VISITOR, STOPPED), VISITOR.id)
         composeRule
-            .onNodeWithText("1:30 pm · Visitor")
+            .onNodeWithContentDescription("Open details")
             .assertIsFocused()
     }
 }

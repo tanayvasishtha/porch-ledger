@@ -75,6 +75,7 @@ data class VisitDetail(
     val box: BoxOut? = null,
     val doorOverlap: Float? = null,
     val trace: List<ToolCallOut> = emptyList(),
+    val doorPolygon: List<List<Float>>? = null,
 )
 
 @Serializable

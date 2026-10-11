@@ -16,6 +16,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,7 +27,6 @@ import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.ui.components.FoldedLine
 import ledger.porch.tv.ui.components.TimeRail
 import ledger.porch.tv.ui.components.VisitHero
-import ledger.porch.tv.ui.components.hasActions
 import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
@@ -34,7 +34,9 @@ import ledger.porch.tv.ui.theme.TvType
 @Composable
 fun TodayScreen(
     viewModel: TodayViewModel,
+    onOpenDetail: (visitId: String, autoplay: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    focusRail: Boolean = false,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -62,6 +64,8 @@ fun TodayScreen(
                     offline = false,
                     onSelect = viewModel::select,
                     onClaim = { card -> viewModel.claimSelected(card) },
+                    onOpenDetail = onOpenDetail,
+                    focusRail = focusRail,
                 )
             is TodayUiState.Offline ->
                 TodayContent(
@@ -71,6 +75,8 @@ fun TodayScreen(
                     offline = true,
                     onSelect = viewModel::select,
                     onClaim = { card -> viewModel.claimSelected(card) },
+                    onOpenDetail = onOpenDetail,
+                    focusRail = focusRail,
                 )
         }
     }
@@ -84,6 +90,8 @@ internal fun ColumnScope.TodayContent(
     offline: Boolean,
     onSelect: (String) -> Unit,
     onClaim: (VisitCard) -> Unit,
+    onOpenDetail: (String, Boolean) -> Unit,
+    focusRail: Boolean = false,
 ) {
     if (offline) {
         Text(
@@ -103,13 +111,15 @@ internal fun ColumnScope.TodayContent(
     VisitHero(
         card = selected,
         primaryFocus = heroFocus,
+        onOpenDetails = { onOpenDetail(selected.id, false) },
         onClaim = { onClaim(selected) },
-        onPlayClip = {},
+        onPlayClip = { onOpenDetail(selected.id, true) },
         modifier =
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = TvSpacing.OverscanH),
+                .padding(horizontal = TvSpacing.OverscanH)
+                .focusProperties { down = railFocus },
     )
     TimeRail(
         cards = cards,
@@ -127,7 +137,9 @@ internal fun ColumnScope.TodayContent(
         // Lazy rail items apply after the first frame; wait before asking
         // for focus or the requester is not yet initialized.
         withFrameNanos { }
-        if (hasActions(selected)) heroFocus.requestFocus() else railFocus.requestFocus()
+        // Open details on the hero image is always actionable; the rail
+        // only wins when returning from the detail screen.
+        if (focusRail) railFocus.requestFocus() else heroFocus.requestFocus()
     }
 }
 

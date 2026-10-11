@@ -128,6 +128,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui.compose)
 
     debugImplementation(libs.compose.ui.tooling)
 

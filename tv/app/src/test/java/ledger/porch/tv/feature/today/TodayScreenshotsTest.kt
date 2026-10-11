@@ -166,6 +166,7 @@ class TodayScreenshotsTest {
                         offline = offline,
                         onSelect = {},
                         onClaim = {},
+                        onOpenDetail = { _, _ -> },
                     )
                 }
             }
@@ -258,6 +259,7 @@ class TodayScreenshots720Test {
                         offline = false,
                         onSelect = {},
                         onClaim = {},
+                        onOpenDetail = { _, _ -> },
                     )
                 }
             }

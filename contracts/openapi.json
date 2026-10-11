@@ -402,6 +402,23 @@
             ],
             "title": "Door Overlap"
           },
+          "door_polygon": {
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Door Polygon"
+          },
           "end_ms": {
             "title": "End Ms",
             "type": "integer"
@@ -489,7 +506,8 @@
           "version",
           "box",
           "door_overlap",
-          "trace"
+          "trace",
+          "door_polygon"
         ],
         "title": "VisitDetail",
         "type": "object"

@@ -61,4 +61,9 @@ def to_detail(visit: Visit, ctx: AppContext) -> VisitDetail:
             )
             for call in visit.trace
         ],
+        door_polygon=(
+            [[x, y] for x, y in ctx.house.door_polygon]
+            if ctx.house.door_polygon is not None
+            else None
+        ),
     )

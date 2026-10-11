@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -18,11 +19,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.ui.theme.TvColors
+import ledger.porch.tv.ui.theme.TvFocus
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
 
@@ -33,6 +40,7 @@ internal fun hasActions(card: VisitCard): Boolean = (card.recipientId != null &&
 fun VisitHero(
     card: VisitCard,
     primaryFocus: FocusRequester,
+    onOpenDetails: () -> Unit,
     onClaim: () -> Unit,
     onPlayClip: () -> Unit,
     modifier: Modifier = Modifier,
@@ -45,17 +53,28 @@ fun VisitHero(
                 .padding(TvSpacing.L),
         horizontalArrangement = Arrangement.spacedBy(TvSpacing.L),
     ) {
-        AsyncImage(
-            model = card.heroUrl,
-            contentDescription = card.title,
-            contentScale = ContentScale.Crop,
+        Surface(
+            onClick = onOpenDetails,
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(TvSpacing.S)),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.SCALE),
             modifier =
                 Modifier
                     .weight(0.58f)
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(TvSpacing.S))
-                    .background(TvColors.Ink),
-        )
+                    .focusRequester(primaryFocus)
+                    .semantics { contentDescription = "Open details" },
+        ) {
+            AsyncImage(
+                model = card.heroUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(TvSpacing.S))
+                        .background(TvColors.Ink),
+            )
+        }
         Column(
             modifier =
                 Modifier
@@ -65,7 +84,6 @@ fun VisitHero(
         ) {
             HeroBody(
                 card = card,
-                primaryFocus = primaryFocus,
                 onClaim = onClaim,
                 onPlayClip = onPlayClip,
             )
@@ -76,7 +94,6 @@ fun VisitHero(
 @Composable
 private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
     card: VisitCard,
-    primaryFocus: FocusRequester,
     onClaim: () -> Unit,
     onPlayClip: () -> Unit,
 ) {
@@ -109,7 +126,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
     if (hasActions(card)) {
         HeroActions(
             card = card,
-            primaryFocus = primaryFocus,
             onClaim = onClaim,
             onPlayClip = onPlayClip,
         )
@@ -119,27 +135,16 @@ private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
 @Composable
 private fun HeroActions(
     card: VisitCard,
-    primaryFocus: FocusRequester,
     onClaim: () -> Unit,
     onPlayClip: () -> Unit,
 ) {
     val claimable = card.recipientId != null && card.claimedBy == null
     Row(horizontalArrangement = Arrangement.spacedBy(TvSpacing.M)) {
         if (claimable) {
-            TvAction(
-                label = "It's mine",
-                enabled = true,
-                onClick = onClaim,
-                modifier = Modifier.focusRequester(primaryFocus),
-            )
+            TvAction(label = "It's mine", enabled = true, onClick = onClaim)
         }
         if (card.clipUrl != null) {
-            TvAction(
-                label = "Play clip",
-                enabled = true,
-                onClick = onPlayClip,
-                modifier = if (claimable) Modifier else Modifier.focusRequester(primaryFocus),
-            )
+            TvAction(label = "Play clip", enabled = true, onClick = onPlayClip)
         }
     }
 }
