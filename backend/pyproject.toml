@@ -42,10 +42,12 @@ addopts = "-q --strict-markers"
 
 [dependency-groups]
 dev = [
+    "boto3>=1.43.111",
     "httpx>=0.28.1",
     "hypothesis>=6.169.0",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
+    "types-boto3[bedrock-runtime,dynamodb,polly,rekognition,s3,textract]>=1.43.111",
 ]

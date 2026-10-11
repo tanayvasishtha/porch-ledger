@@ -11,6 +11,8 @@
 - mcp: Model Context Protocol Python SDK v2 for the household tools over Streamable HTTP.
 - httpx (dev): Starlette TestClient transport for API tests.
 - pillow: image crop for delivery label OCR in enrich, and synthetic tape frames in tests/demo.
+- boto3: S3 media, Rekognition labels, Textract OCR, Polly speech, Bedrock Nova clip descriptions; each call runs in asyncio.to_thread under a per-service semaphore.
+- types-boto3 (dev): client and type stubs so the AWS adapters stay under mypy strict.
 - hatchling: PEP 517 build backend for the src-layout `porch` package.
 - pytest: unit and integration tests.
 - hypothesis: property tests for the pure engine and geometry code.
