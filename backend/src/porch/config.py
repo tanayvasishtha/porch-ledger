@@ -57,11 +57,16 @@ class VisionSettings(BaseModel):
     ocr_min_confidence: float = Field(default=60.0, ge=0.0, le=100.0)
     rekognition_min_confidence: float = Field(default=60.0, ge=0.0, le=100.0)
     rekognition_max_labels: int = Field(default=25, gt=0)
+    describe_model_id: str = "us.amazon.nova-lite-v1:0"
+    describe_max_tokens: int = Field(default=200, gt=0)
+    describe_max_chars: int = Field(default=140, gt=0)
 
 
 class WeatherSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
+    base_url: str = "https://api.open-meteo.com/v1/forecast"
+    timeout_s: int = Field(default=10, gt=0)
     rain_horizon_h: int = Field(default=3, gt=0)
     rain_prob_threshold_pct: int = Field(default=50, ge=0, le=100)
     cache_ttl_s: int = Field(default=900, gt=0)

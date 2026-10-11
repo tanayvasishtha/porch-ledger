@@ -13,6 +13,7 @@
 - pillow: image crop for delivery label OCR in enrich, and synthetic tape frames in tests/demo.
 - boto3: S3 media, Rekognition labels, Textract OCR, Polly speech, Bedrock Nova clip descriptions; each call runs in asyncio.to_thread under a per-service semaphore.
 - types-boto3 (dev): client and type stubs so the AWS adapters stay under mypy strict.
+- httpx2: async HTTP for Open-Meteo; the same fork the MCP SDK already vendors, so one HTTP client total.
 - hatchling: PEP 517 build backend for the src-layout `porch` package.
 - pytest: unit and integration tests.
 - hypothesis: property tests for the pure engine and geometry code.

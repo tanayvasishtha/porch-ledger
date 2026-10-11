@@ -5,6 +5,7 @@ description = "Porch Ledger backend: Ring doorbell events into visits"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.0",
+    "httpx2>=2.13.1",
     "mcp>=2,<3",
     "pillow>=12.3.0",
     "pydantic>=2.12",
