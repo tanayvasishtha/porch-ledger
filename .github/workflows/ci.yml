@@ -55,6 +55,32 @@ jobs:
       - name: release build
         run: ./gradlew.bat assembleRelease
 
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: pnpm install --frozen-lockfile
+        working-directory: echo
+      - run: pnpm exec biome ci
+        working-directory: echo
+      - run: pnpm exec tsc --noEmit
+        working-directory: echo
+      - run: pnpm exec vitest run
+        working-directory: echo
+      - run: pnpm build
+        working-directory: echo
+      - name: smoke against the demo server
+        run: |
+          cd backend
+          PORCH_API__CORS_ORIGINS='["http://localhost:5173"]' uv run python -m porch demo --serve &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/healthz && break || sleep 1; done
+          cd ../echo && node scripts/smoke.ts
+
   secrets:
     runs-on: ubuntu-latest
     steps:

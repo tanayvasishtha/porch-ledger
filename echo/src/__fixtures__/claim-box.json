@@ -1,0 +1,20 @@
+{
+  "blocks_door": false,
+  "claimed_by": "priya",
+  "clip_url": null,
+  "description": "A box was left at the door.",
+  "end_ms": 1780337205000,
+  "facts": [
+    "Box for Priya Shah",
+    "Rain likely by 4:00 pm"
+  ],
+  "hero_url": "/v1/media/a415da0e798544a3fd43dcb7271f4db2a619d4227f34eeb80b0a0103892c461e.jpg",
+  "id": "cb5c0e777ac34a5b",
+  "kind": "delivery",
+  "provenance": "replay",
+  "recipient_id": "priya",
+  "span": "11:05 to 11:06 am",
+  "start_ms": 1780337100000,
+  "title": "Delivery",
+  "version": 2
+}

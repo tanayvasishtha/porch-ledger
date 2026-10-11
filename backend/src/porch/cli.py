@@ -22,7 +22,7 @@ from porch.api.app import create_app
 from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext
 from porch.config import Settings
-from porch.demo import card_lines, demo_context, ingest_tape
+from porch.demo import card_lines, demo_context, echo_fixtures, ingest_tape, repo_root
 
 
 class SystemClock:
@@ -33,7 +33,7 @@ class SystemClock:
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return repo_root()
 
 
 def _resolve_input(path: Path) -> Path:
@@ -66,6 +66,14 @@ async def _tools_json(mcp: MCPServer) -> list[dict[str, Any]]:
     async with Client(mcp) as client:
         result = await client.list_tools()
     return [t.model_dump(mode="json", exclude_none=True) for t in result.tools]
+
+
+def _echo_fixtures(args: argparse.Namespace) -> None:
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    for name, content in asyncio.run(echo_fixtures()).items():
+        _write_json(out / name, content)
+        print(f"wrote {name}")
 
 
 def _export_contracts(args: argparse.Namespace) -> None:
@@ -141,6 +149,9 @@ def main(argv: list[str] | None = None) -> None:
     demo.add_argument("--host", default="127.0.0.1")
     demo.add_argument("--port", type=int, default=8000)
     demo.set_defaults(func=_demo)
+    echo_fx = sub.add_parser("echo-fixtures", help="write echo/src/__fixtures__ from the MCP tools")
+    echo_fx.add_argument("--out", default=str(repo_root() / "echo" / "src" / "__fixtures__"))
+    echo_fx.set_defaults(func=_echo_fixtures)
     record_cmd = sub.add_parser("record", help="record a live Ring device into a tape")
     record_cmd.add_argument("--device", default="auto", help="device id or auto")
     record_cmd.add_argument("--minutes", type=int, required=True)

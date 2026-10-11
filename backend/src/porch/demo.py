@@ -8,16 +8,20 @@ and weather is a fixed 70% by 4:00 pm.
 
 import hashlib
 import os
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from mcp import Client
+
 from porch.adapters.local import FileMediaStore, SqliteRepository
 from porch.adapters.local.house_file import load_house
-from porch.adapters.tape import ReplaySource, Tape, TapeMediaFetcher
+from porch.adapters.tape import ReplaySource, Tape, TapeMediaFetcher, load_tape
 from porch.api.deps import AppContext
 from porch.config import Settings
 from porch.domain import Detection, DoorEvent, NormBox, RainRisk, Visit, card_text
+from porch.mcp_server import build_mcp
 from porch.pipeline.enrich import EnrichPorts, crop_label
 from porch.pipeline.ingest import (
     IngestConfig,
@@ -110,6 +114,37 @@ class _AllNowSource:
 
     async def poll(self) -> list[DoorEvent]:
         return await self._source.all_now()
+
+
+def repo_root() -> Path:
+    """The repository root, three levels above src/porch."""
+    return Path(__file__).resolve().parents[3]
+
+
+async def echo_fixtures() -> dict[str, object]:
+    """StructuredContent of the tools the Echo client consumes.
+
+    Written to echo/src/__fixtures__; the drift test regenerates in memory
+    and compares. Claim runs last so inbox fixtures stay unclaimed.
+    """
+    tape = load_tape(repo_root() / "fixtures" / "tapes" / "synthetic-day")
+    with tempfile.TemporaryDirectory() as tmp:
+        ctx = demo_context(
+            tape, Settings(), Path(tmp), repo_root() / "fixtures" / "house.demo.json"
+        )
+        await ingest_tape(ctx, tape)
+        async with Client(build_mcp(ctx)) as mcp:
+            inbox_p = await mcp.call_tool("anything_for_me", {"resident_id": "priya"})
+            inbox_s = await mcp.call_tool("anything_for_me", {"resident_id": "sam"})
+            roster = await mcp.call_tool("residents", {})
+            first = inbox_p.structured_content["items"][0]["id"]
+            claim = await mcp.call_tool("claim_box", {"visit_id": first, "resident_id": "priya"})
+    return {
+        "inbox-priya.json": inbox_p.structured_content,
+        "inbox-sam.json": inbox_s.structured_content,
+        "residents.json": roster.structured_content,
+        "claim-box.json": claim.structured_content,
+    }
 
 
 async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:

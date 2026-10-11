@@ -12,7 +12,7 @@ import {
   isVisitCard,
   type Resident,
   type VisitCard,
-} from './types';
+} from './types.ts';
 
 export const MCP_PROTOCOL = '2025-11-25';
 
@@ -26,10 +26,13 @@ export class ToolShapeError extends Error {
 }
 
 export class PorchMcp {
-  private constructor(
-    private readonly client: Client,
-    readonly serverOrigin: string,
-  ) {}
+  private readonly client: Client;
+  readonly serverOrigin: string;
+
+  private constructor(client: Client, serverOrigin: string) {
+    this.client = client;
+    this.serverOrigin = serverOrigin;
+  }
 
   static async connect(mcpUrl: string = DEFAULT_URL, houseKey?: string): Promise<PorchMcp> {
     const headers = houseKey ? { Authorization: `Bearer ${houseKey}` } : undefined;

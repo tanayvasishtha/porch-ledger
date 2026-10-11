@@ -17,7 +17,20 @@ backend:
 tv:
     ./gradlew.bat spotlessCheck detekt lint testDebugUnitTest verifyRoborazziDebug assembleRelease
 
-check: check-prose backend tv
+[working-directory: 'echo']
+echo:
+    # .cmd so the Windows PowerShell execution policy does not block pnpm.ps1.
+    pnpm.cmd install --frozen-lockfile
+    pnpm.cmd exec biome ci
+    pnpm.cmd exec tsc --noEmit
+    pnpm.cmd exec vitest run
+    pnpm.cmd build
+
+[working-directory: 'backend']
+echo-fixtures:
+    uv run python -m porch echo-fixtures
+
+check: check-prose backend tv echo
 
 [working-directory: 'backend']
 contracts:
