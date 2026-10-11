@@ -12,6 +12,14 @@ from typing import Protocol
 from porch.domain import Detection, DoorEvent, RainRisk, Visit
 
 
+class PortError(Exception):
+    """Failure at a port boundary.
+
+    Adapters translate their own failures (SDK errors, missing objects,
+    IO problems) into this; nothing else crosses the port boundary.
+    """
+
+
 class EventSource(Protocol):
     """Where door events come from: Playground poll, tape, own footage, webhook."""
 

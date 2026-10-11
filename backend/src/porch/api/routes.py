@@ -21,6 +21,7 @@ from porch.api.schemas import (
     VisitList,
 )
 from porch.domain import House, Visit, VisitKind
+from porch.ports import PortError
 
 router = APIRouter()
 health_router = APIRouter()
@@ -110,7 +111,7 @@ async def get_media(key: str, ctx: Annotated[AppContext, Depends(get_ctx)]) -> R
         raise HTTPException(status_code=404, detail="media not served here")
     try:
         data = await ctx.media.get(key)
-    except (MediaKeyError, FileNotFoundError) as exc:
+    except (MediaKeyError, PortError) as exc:
         raise HTTPException(status_code=404, detail="not found") from exc
     media_type = mimetypes.guess_type(key)[0] or "application/octet-stream"
     return Response(content=data, media_type=media_type)

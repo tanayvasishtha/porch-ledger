@@ -9,6 +9,8 @@ import asyncio
 import hashlib
 from pathlib import Path
 
+from porch.ports import PortError
+
 _SEPARATORS = ("/", "\\")
 _PARENT_REF = ".."
 
@@ -53,4 +55,8 @@ class FileMediaStore:
 
     def _get(self, key: str) -> bytes:
         _check_key(key)
-        return (self._root / key).read_bytes()
+        try:
+            return (self._root / key).read_bytes()
+        except FileNotFoundError as exc:
+            msg = f"media not found: {key}"
+            raise PortError(msg) from exc

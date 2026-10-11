@@ -1,9 +1,22 @@
 """Shared fakes and factories for adapter and API tests."""
 
+import io
+from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
-from porch.domain import House, Resident, Visit, VisitKind
+from PIL import Image
+
+from porch.domain import (
+    Detection,
+    DoorEvent,
+    House,
+    RainRisk,
+    Resident,
+    Visit,
+    VisitKind,
+)
+from porch.ports import PortError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_FIXTURE = REPO_ROOT / "fixtures" / "house.demo.json"
@@ -105,7 +118,69 @@ class FakeRepo:
 
 class FakeClock:
     def __init__(self, now_ms: int) -> None:
-        self._now_ms = now_ms
+        self.current = now_ms
 
     def now_ms(self) -> int:
-        return self._now_ms
+        return self.current
+
+
+def make_jpeg(width: int = 200, height: int = 200, color: str = "gray") -> bytes:
+    """Tiny real JPEG; enrich crops it with Pillow."""
+    image = Image.new("RGB", (width, height), color)
+    out = io.BytesIO()
+    image.save(out, format="JPEG")
+    return out.getvalue()
+
+
+class FakeSource:
+    """EventSource that yields its events once, in order."""
+
+    def __init__(self, events: Sequence[DoorEvent]) -> None:
+        self._events = list(events)
+
+    async def poll(self) -> list[DoorEvent]:
+        out, self._events = self._events, []
+        return out
+
+
+class FakeLabeler:
+    def __init__(self, detections: Sequence[Detection] = ()) -> None:
+        self._detections = tuple(detections)
+        self.calls = 0
+
+    async def detect(self, image: bytes) -> tuple[Detection, ...]:
+        self.calls += 1
+        return self._detections
+
+
+class FakeReader:
+    def __init__(self, lines: Sequence[str] = (), error: PortError | None = None) -> None:
+        self._lines = tuple(lines)
+        self._error = error
+
+    async def read(self, image: bytes) -> tuple[str, ...]:
+        if self._error is not None:
+            raise self._error
+        return self._lines
+
+
+class FakeDescriber:
+    def __init__(self, text: str | None = None, error: PortError | None = None) -> None:
+        self._text = text
+        self._error = error
+
+    async def describe(self, clip_key: str) -> str | None:
+        if self._error is not None:
+            raise self._error
+        return self._text
+
+
+class FakeWeather:
+    def __init__(self, risk: RainRisk | None = None, error: PortError | None = None) -> None:
+        self._risk = risk
+        self._error = error
+
+    async def max_rain_probability_pct(self, hours: int) -> RainRisk | None:
+        if self._error is not None:
+            raise self._error
+        return self._risk

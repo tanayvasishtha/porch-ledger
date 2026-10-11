@@ -10,6 +10,7 @@
 - uvicorn: ASGI server for `porch serve`.
 - mcp: Model Context Protocol Python SDK v2 for the household tools over Streamable HTTP.
 - httpx (dev): Starlette TestClient transport for API tests.
+- pillow: image crop for delivery label OCR in enrich, and synthetic tape frames in tests/demo.
 - hatchling: PEP 517 build backend for the src-layout `porch` package.
 - pytest: unit and integration tests.
 - hypothesis: property tests for the pure engine and geometry code.
