@@ -2,10 +2,8 @@
 
 from collections.abc import Callable
 
-from porch.domain.models import DomainError, NormBox
+from porch.domain.models import DomainError, NormBox, Point, Polygon
 
-Point = tuple[float, float]
-Polygon = tuple[Point, ...]
 InsideFn = Callable[[Point], bool]
 IntersectFn = Callable[[Point, Point], Point]
 

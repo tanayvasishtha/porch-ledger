@@ -7,6 +7,10 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+Point = tuple[float, float]
+Polygon = tuple[Point, ...]
 
 DetectionLabel = Literal["vehicle", "person", "box"]
 EventKind = Literal["motion", "ding", "on_demand", "own"]
@@ -14,6 +18,8 @@ Provenance = Literal["ring", "own", "replay"]
 RecipientState = Literal["matched", "unreadable", "not_ours", "not_checked"]
 
 MAX_PROBABILITY_PCT = 100
+LATITUDE_LIMIT_DEG = 90.0
+LONGITUDE_LIMIT_DEG = 180.0
 
 
 class DomainError(ValueError):
@@ -53,6 +59,27 @@ class MixedDevicesError(DomainError):
 
     def __init__(self, device_ids: Collection[str]) -> None:
         super().__init__(f"{len(device_ids)} device ids: {sorted(device_ids)}")
+
+
+class UnknownTimezoneError(DomainError):
+    """House timezone name that zoneinfo cannot load."""
+
+    def __init__(self, timezone: str) -> None:
+        super().__init__(f"unknown timezone: {timezone}")
+
+
+class InvalidCoordinatesError(DomainError):
+    """Latitude outside [-90, 90] or longitude outside [-180, 180]."""
+
+    def __init__(self, latitude: float, longitude: float) -> None:
+        super().__init__(f"lat={latitude} lon={longitude} out of range")
+
+
+class DuplicateResidentError(DomainError):
+    """Two residents in one house share an id."""
+
+    def __init__(self, resident_ids: Collection[str]) -> None:
+        super().__init__(f"duplicate resident ids: {sorted(resident_ids)}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,3 +198,34 @@ def visit_id(device_id: str, first_event_id: str) -> str:
     """Deterministic visit id, first 16 hex chars of sha256."""
     digest = hashlib.sha256(f"{device_id}:{first_event_id}".encode()).hexdigest()
     return digest[:16]
+
+
+@dataclass(frozen=True, slots=True)
+class Resident:
+    id: str
+    display_name: str
+    aliases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class House:
+    id: str
+    timezone: str
+    residents: tuple[Resident, ...]
+    door_polygon: Polygon | None
+    latitude: float
+    longitude: float
+
+    def __post_init__(self) -> None:
+        try:
+            ZoneInfo(self.timezone)
+        except ZoneInfoNotFoundError:
+            raise UnknownTimezoneError(self.timezone) from None
+        if not -LATITUDE_LIMIT_DEG <= self.latitude <= LATITUDE_LIMIT_DEG:
+            raise InvalidCoordinatesError(self.latitude, self.longitude)
+        if not -LONGITUDE_LIMIT_DEG <= self.longitude <= LONGITUDE_LIMIT_DEG:
+            raise InvalidCoordinatesError(self.latitude, self.longitude)
+        ids = [r.id for r in self.residents]
+        dups = {rid for rid in ids if ids.count(rid) > 1}
+        if dups:
+            raise DuplicateResidentError(dups)

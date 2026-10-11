@@ -3,8 +3,12 @@ import pytest
 from porch.domain import (
     Detection,
     DoorEvent,
+    House,
+    InvalidCoordinatesError,
     NormBox,
     RainRisk,
+    Resident,
+    UnknownTimezoneError,
     VisitKind,
     visit_id,
 )
@@ -66,6 +70,59 @@ def test_rain_risk_edges_ok(pct: int) -> None:
 def test_rain_risk_rejected(pct: int) -> None:
     with pytest.raises(ValueError):
         RainRisk(probability_pct=pct, by_local_time="18:00")
+
+
+PRIYA = Resident(id="r1", display_name="Priya Shah")
+
+
+def test_house_accepts_valid_fields() -> None:
+    house = House(
+        id="h1",
+        timezone="Asia/Tokyo",
+        residents=(PRIYA,),
+        door_polygon=None,
+        latitude=35.6,
+        longitude=139.7,
+    )
+    assert house.residents[0].aliases == ()
+
+
+def test_house_rejects_unknown_timezone() -> None:
+    with pytest.raises(UnknownTimezoneError):
+        House(
+            id="h1",
+            timezone="Not/AZone",
+            residents=(),
+            door_polygon=None,
+            latitude=0.0,
+            longitude=0.0,
+        )
+
+
+@pytest.mark.parametrize(("lat", "lon"), [(-91.0, 0.0), (91.0, 0.0), (0.0, -181.0), (0.0, 181.0)])
+def test_house_rejects_bad_coordinates(lat: float, lon: float) -> None:
+    with pytest.raises(InvalidCoordinatesError):
+        House(
+            id="h1",
+            timezone="UTC",
+            residents=(),
+            door_polygon=None,
+            latitude=lat,
+            longitude=lon,
+        )
+
+
+def test_house_rejects_duplicate_resident_ids() -> None:
+    twin = Resident(id="r1", display_name="Priya Shahh")
+    with pytest.raises(ValueError):
+        House(
+            id="h1",
+            timezone="UTC",
+            residents=(PRIYA, twin),
+            door_polygon=None,
+            latitude=0.0,
+            longitude=0.0,
+        )
 
 
 def test_visit_id_deterministic() -> None:
