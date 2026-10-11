@@ -26,6 +26,8 @@ class RingSettings(BaseModel):
     # Env var names; the secrets themselves never live in settings.
     access_token_env: str = "RING_ACCESS_TOKEN"
     webhook_secret_env: str = "RING_WEBHOOK_SECRET"
+    # Empty means the worker polls the first device devices() returns.
+    device_id: str = ""
     history_page_limit: int = Field(default=5, gt=0)
     # Media Clips docs: on 416/425 retry the unchanged request with the
     # capped sequence 5, 10, 20, 30 then 30 s, up to about two minutes.
@@ -97,6 +99,7 @@ class AwsSettings(BaseModel):
     media_bucket: str = ""
     polly_voice: str = "Danielle"
     polly_engine: Literal["neural", "generative", "standard"] = "neural"
+    table_name: str = "porch"
     s3_concurrency: int = Field(default=4, gt=0)
     rekognition_concurrency: int = Field(default=4, gt=0)
     textract_concurrency: int = Field(default=2, gt=0)
@@ -113,6 +116,13 @@ class ApiSettings(BaseModel):
     house_key_sha256: str | None = None
     cors_origins: tuple[str, ...] = ()
     house_file: Path = Path("fixtures/house.demo.json")
+    # MCP transport DNS-rebinding allowlist; the deploy sets the API host.
+    allowed_hosts: tuple[str, ...] = (
+        "localhost",
+        "127.0.0.1",
+        "localhost:*",
+        "127.0.0.1:*",
+    )
     sqlite_path: Path = Path(".local/porch.db")
     local_media_dir: Path = Path(".local/media")
     # Empty means media URLs go out relative; clients resolve their own base.

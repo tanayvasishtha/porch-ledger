@@ -13,9 +13,11 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from types_boto3_bedrock_runtime import BedrockRuntimeClient
+from types_boto3_dynamodb.client import DynamoDBClient
 from types_boto3_polly import PollyClient
 from types_boto3_rekognition import RekognitionClient
 from types_boto3_s3 import S3Client
+from types_boto3_ssm.client import SSMClient
 from types_boto3_textract import TextractClient
 
 from porch.config import Settings
@@ -30,6 +32,8 @@ class AwsClients:
     """Every service client the adapters need, in one place."""
 
     s3: S3Client
+    dynamodb: DynamoDBClient
+    ssm: SSMClient
     rekognition: RekognitionClient
     textract: TextractClient
     polly: PollyClient
@@ -45,6 +49,8 @@ def build_clients(settings: Settings) -> AwsClients:
     region = settings.aws.region
     return AwsClients(
         s3=boto3.client("s3", region_name=region, config=config),
+        dynamodb=boto3.client("dynamodb", region_name=region, config=config),
+        ssm=boto3.client("ssm", region_name=region, config=config),
         rekognition=boto3.client("rekognition", region_name=region, config=config),
         textract=boto3.client("textract", region_name=region, config=config),
         polly=boto3.client("polly", region_name=region, config=config),

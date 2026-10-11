@@ -51,5 +51,5 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
-    "types-boto3[bedrock-runtime,dynamodb,polly,rekognition,s3,textract]>=1.43.111",
+    "types-boto3[bedrock-runtime,dynamodb,polly,rekognition,s3,ssm,textract]>=1.43.111",
 ]

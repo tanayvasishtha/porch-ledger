@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from mcp.server.transport_security import TransportSecuritySettings
 
 from porch.api.auth import BearerASGIMiddleware, bearer_guard
 from porch.api.deps import AppContext
@@ -54,6 +55,9 @@ def create_app(ctx: AppContext) -> FastAPI:
         streamable_http_path="/mcp",
         stateless_http=True,
         json_response=True,
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=list(ctx.settings.api.allowed_hosts),
+        ),
     )
 
     @asynccontextmanager

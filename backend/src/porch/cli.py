@@ -4,11 +4,11 @@ import argparse
 import asyncio
 import json
 import shutil
-import time
 from pathlib import Path
 from typing import Any
 
 import uvicorn
+from fastapi import FastAPI
 from mcp import Client
 from mcp.server import MCPServer
 
@@ -21,15 +21,10 @@ from porch.adapters.tape import load_tape
 from porch.api.app import create_app
 from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext
+from porch.aws_lambda import build_cloud_context
+from porch.clock import SystemClock
 from porch.config import Settings
 from porch.demo import card_lines, demo_context, echo_fixtures, ingest_tape, repo_root
-
-
-class SystemClock:
-    """Wall clock for real deployments."""
-
-    def now_ms(self) -> int:
-        return int(time.time() * 1000)
 
 
 def _repo_root() -> Path:
@@ -159,3 +154,8 @@ def main(argv: list[str] | None = None) -> None:
     record_cmd.set_defaults(func=_record)
     args = parser.parse_args(argv)
     args.func(args)
+
+
+def cloud_app() -> FastAPI:
+    """Lambda Web Adapter entry: the app on DynamoDB and S3."""
+    return create_app(build_cloud_context(Settings()))

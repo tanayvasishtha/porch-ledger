@@ -28,7 +28,12 @@ class _HouseFile(BaseModel):
 
 def load_house(path: Path) -> House:
     """Parse the file and convert; pydantic reports bad fields in one message."""
-    parsed = _HouseFile.model_validate_json(path.read_text(encoding="utf-8"))
+    return loads_house(path.read_text(encoding="utf-8"))
+
+
+def loads_house(text: str) -> House:
+    """Parse house JSON text (packaged file or an S3 object body)."""
+    parsed = _HouseFile.model_validate_json(text)
     return House(
         id=parsed.id,
         timezone=parsed.timezone,

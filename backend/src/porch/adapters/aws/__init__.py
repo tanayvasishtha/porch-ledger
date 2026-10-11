@@ -26,10 +26,14 @@ __all__ = [
 
 
 def build_live_ports(
-    settings: Settings, house: House, clock: Clock, cassette: Cassette
+    settings: Settings,
+    house: House,
+    clock: Clock,
+    cassette: Cassette,
+    clients: AwsClients | None = None,
 ) -> tuple[EnrichPorts, RekognitionLabeler, S3MediaStore]:
     """Wire the real AWS ports for the worker: one client set, one cassette."""
-    clients = build_clients(settings)
+    clients = clients or build_clients(settings)
     media = S3MediaStore(clients.s3, settings, cassette)
     labeler = RekognitionLabeler(clients.rekognition, settings, cassette)
     enrich = EnrichPorts(
