@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // CI smoke: connect to a running demo server and ask for Priya's inbox.
 // Run with `pnpm exec vite-node scripts/smoke.ts` while
 // `uv run python -m porch demo --serve` is up.
