@@ -1,5 +1,6 @@
 """Pure domain layer: no I/O, no imports outside stdlib and porch."""
 
+from porch.domain.engine import stitch
 from porch.domain.models import (
     BoxFacts,
     Detection,
@@ -11,6 +12,7 @@ from porch.domain.models import (
     InvalidNormBoxError,
     InvalidProbabilityError,
     InvalidTimeRangeError,
+    MixedDevicesError,
     NormBox,
     Provenance,
     RainRisk,
@@ -21,6 +23,12 @@ from porch.domain.models import (
     VisitKind,
     visit_id,
 )
+from porch.domain.porch_state import (
+    EngineParams,
+    PorchState,
+    StitchResult,
+    TrackedBox,
+)
 
 __all__ = [
     "BoxFacts",
@@ -28,18 +36,24 @@ __all__ = [
     "DetectionLabel",
     "DomainError",
     "DoorEvent",
+    "EngineParams",
     "EventKind",
     "InvalidConfidenceError",
     "InvalidNormBoxError",
     "InvalidProbabilityError",
     "InvalidTimeRangeError",
+    "MixedDevicesError",
     "NormBox",
+    "PorchState",
     "Provenance",
     "RainRisk",
     "RecipientState",
     "Snapshot",
+    "StitchResult",
     "ToolCall",
+    "TrackedBox",
     "Visit",
     "VisitKind",
+    "stitch",
     "visit_id",
 ]

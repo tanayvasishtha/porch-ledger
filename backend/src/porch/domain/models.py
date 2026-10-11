@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Collection
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
@@ -45,6 +46,13 @@ class InvalidProbabilityError(DomainError):
 
     def __init__(self, probability_pct: int) -> None:
         super().__init__(f"probability_pct={probability_pct} outside [0, {MAX_PROBABILITY_PCT}]")
+
+
+class MixedDevicesError(DomainError):
+    """One stitch call received events from more than one device."""
+
+    def __init__(self, device_ids: Collection[str]) -> None:
+        super().__init__(f"{len(device_ids)} device ids: {sorted(device_ids)}")
 
 
 @dataclass(frozen=True, slots=True)

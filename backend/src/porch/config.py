@@ -11,6 +11,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from porch.domain.porch_state import EngineParams
+
 
 class RingSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -105,3 +107,14 @@ class Settings(BaseSettings):
     agent: AgentSettings = Field(default_factory=AgentSettings)
     aws: AwsSettings = Field(default_factory=AwsSettings)
     api: ApiSettings = Field(default_factory=ApiSettings)
+
+
+def from_settings(settings: EngineSettings) -> EngineParams:
+    """Build the pydantic-free EngineParams the domain engine consumes."""
+    return EngineParams(
+        visit_merge_gap_s=settings.visit_merge_gap_s,
+        box_match_iou=settings.box_match_iou,
+        box_min_frames=settings.box_min_frames,
+        dwell_min_s=settings.dwell_min_s,
+        min_detection_confidence=settings.min_detection_confidence,
+    )
