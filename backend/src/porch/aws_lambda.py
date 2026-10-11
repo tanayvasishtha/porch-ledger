@@ -24,6 +24,7 @@ from types_boto3_ssm import SSMClient
 from porch.adapters.aws import build_live_ports
 from porch.adapters.aws.clients import AwsClients, aws_port_error, build_clients
 from porch.adapters.aws.dynamo_repo import DynamoRepository
+from porch.adapters.aws.polly import PollySpeech
 from porch.adapters.aws.s3_media import S3MediaStore
 from porch.adapters.cassette import Cassette
 from porch.adapters.local.house_file import loads_house
@@ -105,12 +106,14 @@ def build_cloud_context(settings: Settings, clients: AwsClients | None = None) -
     secret = ssm.get(_WEBHOOK_SECRET_PARAM)
     if secret is not None:
         os.environ.setdefault(settings.ring.webhook_secret_env, secret)
+    media = S3MediaStore(clients.s3, settings, _LIVE_CASSETTE)
     return AppContext(
         settings=settings,
         repo=DynamoRepository(clients.dynamodb, settings.aws.table_name),
-        media=S3MediaStore(clients.s3, settings, _LIVE_CASSETTE),
+        media=media,
         house=house,
         clock=clock,
+        speech=PollySpeech(clients.polly, settings, _LIVE_CASSETTE, media),
     )
 
 

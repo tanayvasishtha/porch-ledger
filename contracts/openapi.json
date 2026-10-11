@@ -126,6 +126,33 @@
         "title": "ResidentOut",
         "type": "object"
       },
+      "SpeechOut": {
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "SpeechOut",
+        "type": "object"
+      },
+      "SpeechRequest": {
+        "properties": {
+          "text": {
+            "maxLength": 300,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "SpeechRequest",
+        "type": "object"
+      },
       "ToolCallOut": {
         "properties": {
           "latency_ms": {
@@ -644,6 +671,45 @@
           }
         },
         "summary": "Get Media"
+      }
+    },
+    "/v1/speech": {
+      "post": {
+        "description": "Synthesize text to audio; 404 when no Speech port is configured.",
+        "operationId": "speech_v1_speech_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeechRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpeechOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Speech"
       }
     },
     "/v1/visits/{visit_id}": {

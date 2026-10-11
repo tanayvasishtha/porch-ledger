@@ -24,6 +24,8 @@ from porch.api.schemas import (
     ClaimRequest,
     Folded,
     ResidentOut,
+    SpeechOut,
+    SpeechRequest,
     VisitCard,
     VisitDetail,
     VisitList,
@@ -105,6 +107,15 @@ async def claim_visit(
     if claimed is None:
         raise HTTPException(status_code=404, detail=f"unknown visit: {visit_id}")
     return cards.to_card(claimed, ctx)
+
+
+@router.post("/v1/speech", response_model=SpeechOut)
+async def speech(body: SpeechRequest, ctx: Annotated[AppContext, Depends(get_ctx)]) -> SpeechOut:
+    """Synthesize text to audio; 404 when no Speech port is configured."""
+    if ctx.speech is None:
+        raise HTTPException(status_code=404, detail="speech is not configured")
+    key = await ctx.speech.synthesize(body.text)
+    return SpeechOut(url=await ctx.media.url(key, ctx.settings.api.media_url_ttl_s))
 
 
 @router.get("/v1/houses/{house_id}/residents", response_model=list[ResidentOut])

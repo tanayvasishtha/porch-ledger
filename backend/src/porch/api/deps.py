@@ -12,7 +12,7 @@ from porch.domain import House
 
 if TYPE_CHECKING:
     from porch.pipeline.ask import HouseholdAsk
-from porch.ports import Clock, EventSink, MediaStore, Repository
+from porch.ports import Clock, EventSink, MediaStore, Repository, Speech
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +27,8 @@ class AppContext:
     # Household question agent; None makes the ask tool return its fallback.
     # Household question agent; None makes the ask tool return its fallback.
     ask: HouseholdAsk | None = None
+    # Speech synthesis; None means /v1/speech answers 404 (local demo).
+    speech: Speech | None = None
 
 
 def get_ctx(request: Request) -> AppContext:

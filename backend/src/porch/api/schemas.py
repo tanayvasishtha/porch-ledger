@@ -1,6 +1,6 @@
 """Pydantic response and request models for the REST surface."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from porch.domain import RecipientState
 
@@ -23,6 +23,14 @@ class VisitCard(BaseModel):
     claimed_by: str | None
     provenance: str
     version: int
+
+
+class SpeechRequest(BaseModel):
+    text: str = Field(max_length=300)
+
+
+class SpeechOut(BaseModel):
+    url: str
 
 
 class Folded(BaseModel):

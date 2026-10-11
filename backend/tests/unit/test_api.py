@@ -13,6 +13,7 @@ from porch.api.deps import AppContext
 from porch.config import ApiSettings, Settings
 from porch.domain import Visit, VisitKind
 from porch.mcp_server import build_mcp
+from porch.ports import MediaStore
 from tests.helpers import FakeClock, FakeRepo, demo_house, mkvisit
 
 LA = ZoneInfo("America/Los_Angeles")
@@ -199,3 +200,48 @@ def test_mcp_lists_residents_tool(tmp_path: Path) -> None:
         return [t.name for t in result.tools]
 
     assert "residents" in asyncio.run(tools())
+
+
+class _FakeSpeech:
+    def __init__(self, media: MediaStore) -> None:
+        self._media = media
+        self.calls: list[str] = []
+
+    async def synthesize(self, text: str) -> str:
+        self.calls.append(text)
+        return await self._media.put(b"mp3-bytes", ".mp3")
+
+
+def test_speech_not_configured_404(tmp_path: Path) -> None:
+    client = client_for(mkctx(tmp_path))
+    out = client.post("/v1/speech", json={"text": "hello"})
+    assert out.status_code == 404
+    assert "speech is not configured" in out.json()["detail"]
+
+
+def test_speech_returns_media_url(tmp_path: Path) -> None:
+    ctx = mkctx(tmp_path)
+    speech = _FakeSpeech(ctx.media)
+    ctx = AppContext(
+        settings=ctx.settings,
+        repo=ctx.repo,
+        media=ctx.media,
+        house=ctx.house,
+        clock=ctx.clock,
+        speech=speech,
+    )
+    client = client_for(ctx)
+    out = client.post("/v1/speech", json={"text": "You have a box."})
+    assert out.status_code == 200
+    url = out.json()["url"]
+    assert url.endswith(".mp3")
+    assert speech.calls == ["You have a box."]
+    served = client.get(url)
+    assert served.status_code == 200
+    assert served.content == b"mp3-bytes"
+
+
+def test_speech_rejects_long_text(tmp_path: Path) -> None:
+    client = client_for(mkctx(tmp_path))
+    out = client.post("/v1/speech", json={"text": "x" * 301})
+    assert out.status_code == 422
