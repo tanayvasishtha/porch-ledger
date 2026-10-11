@@ -14,7 +14,7 @@ from pathlib import Path
 
 from porch.adapters.local import FileMediaStore, SqliteRepository
 from porch.adapters.local.house_file import load_house
-from porch.adapters.tape import ReplaySource, Tape
+from porch.adapters.tape import ReplaySource, Tape, TapeMediaFetcher
 from porch.api.deps import AppContext
 from porch.config import Settings
 from porch.domain import Detection, DoorEvent, NormBox, RainRisk, Visit, card_text
@@ -117,6 +117,7 @@ async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
     service = IngestService(
         ports=IngestPorts(
             source=_AllNowSource(ReplaySource(tape, speed=1.0, clock=ctx.clock)),
+            fetcher=TapeMediaFetcher(tape),
             media=ctx.media,
             labeler=_NullLabeler(),
             enrich=EnrichPorts(
@@ -131,7 +132,6 @@ async def ingest_tape(ctx: AppContext, tape: Tape) -> IngestReport:
             house=ctx.house,
             settings=ctx.settings,
             clock=ctx.clock,
-            tape_dir=tape.path,
         ),
     )
     return await service.run_once()

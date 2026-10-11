@@ -138,6 +138,24 @@ class Snapshot:
     detections: tuple[Detection, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class FetchedSnapshot:
+    """Snapshot bytes as the MediaFetcher port returns them."""
+
+    at_ms: int
+    data: bytes
+    suffix: str
+    detections: tuple[Detection, ...] | None
+
+
+@dataclass(frozen=True, slots=True)
+class FetchedClip:
+    """Clip bytes as the MediaFetcher port returns them."""
+
+    data: bytes
+    suffix: str
+
+
 class VisitKind(StrEnum):
     DELIVERY = "delivery"
     BOX_GONE = "box_gone"

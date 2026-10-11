@@ -1,19 +1,27 @@
-"""Ingest service: tape events -> stitched visits -> enrichment -> repo.
+"""Ingest service: source events -> stitched visits -> enrichment -> repo.
 
-PorchState and the pending-event buffer live in memory for the local
-pipeline; the AWS worker persists them in a later commit.
+Media comes through the MediaFetcher port, so tape replay and live Ring
+ingest share this path. PorchState and the pending-event buffer live in
+memory for the local pipeline; the AWS worker persists them later.
 """
 
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from pathlib import Path
 
-from porch.adapters.tape import TapeClip, TapeSnapshot, load_tape
+from porch.adapters.tape import TapeSnapshot
 from porch.config import Settings, from_settings
-from porch.domain import DoorEvent, House, PorchState, Snapshot, Visit, stitch
+from porch.domain import (
+    DoorEvent,
+    FetchedSnapshot,
+    House,
+    PorchState,
+    Snapshot,
+    Visit,
+    stitch,
+)
 from porch.pipeline.enrich import EnrichPorts, enrich
 from porch.pipeline.perception import perceive
-from porch.ports import Clock, EventSource, Labeler, MediaStore, Repository
+from porch.ports import Clock, EventSource, Labeler, MediaFetcher, MediaStore, Repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +37,7 @@ class IngestPorts:
     """External systems the service talks to."""
 
     source: EventSource
+    fetcher: MediaFetcher
     media: MediaStore
     labeler: Labeler
     enrich: EnrichPorts
@@ -37,19 +46,25 @@ class IngestPorts:
 
 @dataclass(frozen=True, slots=True)
 class IngestConfig:
-    """House context plus where to find the tape, if there is one."""
+    """House context for one ingest run."""
 
     house: House
     settings: Settings
     clock: Clock
-    tape_dir: Path | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _EventMedia:
+    """Stored media keys for one event, parallel to the fetched order."""
+
+    snapshot_keys: tuple[str, ...]
+    clip_key: str | None
 
 
 class IngestService:
     def __init__(self, ports: IngestPorts, config: IngestConfig) -> None:
         self._ports = ports
         self._config = config
-        self._tape = load_tape(config.tape_dir) if config.tape_dir else None
         self._pending: list[DoorEvent] = []
         self._state = PorchState()
 
@@ -58,8 +73,8 @@ class IngestService:
         buffered = [*self._pending, *events]
         if not buffered:
             return IngestReport(events=0, snapshots=0, visits_closed=0, pending=0)
-        stored = await self._store_media(buffered)
-        snapshots, snap_count = await self._perceive(buffered, stored)
+        stored, fetched = await self._store_media(buffered)
+        snapshots, snap_count = await self._perceive(buffered, stored, fetched)
         result = stitch(
             buffered,
             snapshots,
@@ -80,50 +95,57 @@ class IngestService:
             pending=len(self._pending),
         )
 
-    def _snaps(self, event_id: str) -> tuple[TapeSnapshot, ...]:
-        return self._tape.snapshots_for(event_id) if self._tape else ()
-
-    def _clip(self, event_id: str) -> TapeClip | None:
-        return self._tape.clip_for(event_id) if self._tape else None
-
-    async def _put_file(self, name: str) -> str:
-        # Unreachable without a tape: _snaps/_clip yield nothing then.
-        assert self._tape is not None
-        data = (self._tape.path / name).read_bytes()
-        return await self._ports.media.put(data, Path(name).suffix)
-
-    async def _store_media(self, events: Sequence[DoorEvent]) -> dict[str, str]:
-        stored: dict[str, str] = {}
+    async def _store_media(
+        self, events: Sequence[DoorEvent]
+    ) -> tuple[dict[str, _EventMedia], dict[str, list[FetchedSnapshot]]]:
+        """Fetch media for each event and store bytes in the MediaStore."""
+        stored: dict[str, _EventMedia] = {}
+        fetched: dict[str, list[FetchedSnapshot]] = {}
         for event in events:
-            for snap in self._snaps(event.id):
-                if snap.file not in stored:
-                    stored[snap.file] = await self._put_file(snap.file)
-            clip = self._clip(event.id)
-            if clip is not None and clip.file not in stored:
-                stored[clip.file] = await self._put_file(clip.file)
-        return stored
+            snapshots = await self._ports.fetcher.snapshots(event)
+            fetched[event.id] = snapshots
+            keys = tuple(
+                [await self._ports.media.put(snap.data, snap.suffix) for snap in snapshots]
+            )
+            clip = await self._ports.fetcher.clip(event)
+            clip_key = await self._ports.media.put(clip.data, clip.suffix) if clip else None
+            stored[event.id] = _EventMedia(snapshot_keys=keys, clip_key=clip_key)
+        return stored, fetched
 
     async def _perceive(
-        self, buffered: list[DoorEvent], stored: dict[str, str]
+        self,
+        buffered: list[DoorEvent],
+        stored: dict[str, _EventMedia],
+        fetched: dict[str, list[FetchedSnapshot]],
     ) -> tuple[dict[str, Sequence[Snapshot]], int]:
         snapshots: dict[str, Sequence[Snapshot]] = {}
         count = 0
         for event in buffered:
-            tape_snaps = [replace(s, file=stored[s.file]) for s in self._snaps(event.id)]
+            tape_snaps = [
+                TapeSnapshot(
+                    event_id=event.id,
+                    at_ms=snap.at_ms,
+                    file=stored[event.id].snapshot_keys[index],
+                    detections=snap.detections,
+                )
+                for index, snap in enumerate(fetched[event.id])
+            ]
             snapshots[event.id] = await perceive(
                 tape_snaps, self._ports.labeler, self._ports.media, self._config.settings
             )
             count += len(tape_snaps)
         return snapshots, count
 
-    def _clip_key(self, visit: Visit, stored: dict[str, str]) -> str | None:
+    def _clip_key(self, visit: Visit, stored: dict[str, _EventMedia]) -> str | None:
         for event_id in reversed(visit.event_ids):
-            clip = self._clip(event_id)
-            if clip is not None:
-                return stored[clip.file]
+            clip_key = stored.get(event_id, _EventMedia((), None)).clip_key
+            if clip_key is not None:
+                return clip_key
         return None
 
-    async def _enrich_all(self, visits: tuple[Visit, ...], stored: dict[str, str]) -> list[Visit]:
+    async def _enrich_all(
+        self, visits: tuple[Visit, ...], stored: dict[str, _EventMedia]
+    ) -> list[Visit]:
         out = []
         for visit in visits:
             with_clip = replace(visit, clip_media_key=self._clip_key(visit, stored))

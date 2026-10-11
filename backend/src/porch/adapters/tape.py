@@ -20,10 +20,12 @@ from porch.domain import (
     DetectionLabel,
     DoorEvent,
     EventKind,
+    FetchedClip,
+    FetchedSnapshot,
     NormBox,
     Provenance,
 )
-from porch.ports import Clock
+from porch.ports import Clock, MediaFetcher
 
 TAPE_FILE = "tape.json"
 TAPE_FORMAT = 1
@@ -136,6 +138,33 @@ def load_tape(path: Path) -> Tape:
         clips=clips,
         label_texts=parsed.label_texts,
     )
+
+
+class TapeMediaFetcher(MediaFetcher):
+    """MediaFetcher that reads snapshot and clip files off a tape."""
+
+    def __init__(self, tape: Tape) -> None:
+        self._tape = tape
+
+    async def snapshots(self, event: DoorEvent) -> list[FetchedSnapshot]:
+        return [
+            FetchedSnapshot(
+                at_ms=snap.at_ms,
+                data=(self._tape.path / snap.file).read_bytes(),
+                suffix=Path(snap.file).suffix,
+                detections=snap.detections,
+            )
+            for snap in self._tape.snapshots_for(event.id)
+        ]
+
+    async def clip(self, event: DoorEvent) -> FetchedClip | None:
+        tape_clip = self._tape.clip_for(event.id)
+        if tape_clip is None:
+            return None
+        return FetchedClip(
+            data=(self._tape.path / tape_clip.file).read_bytes(),
+            suffix=Path(tape_clip.file).suffix,
+        )
 
 
 class ReplaySource:

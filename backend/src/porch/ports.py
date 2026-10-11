@@ -9,7 +9,14 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from porch.domain import Detection, DoorEvent, RainRisk, Visit
+from porch.domain import (
+    Detection,
+    DoorEvent,
+    FetchedClip,
+    FetchedSnapshot,
+    RainRisk,
+    Visit,
+)
 
 
 class PortError(Exception):
@@ -25,6 +32,18 @@ class EventSource(Protocol):
 
     async def poll(self) -> list[DoorEvent]:
         """Fetch new events since the stored cursor."""
+        ...
+
+
+class MediaFetcher(Protocol):
+    """Where event media comes from: tape files for replay, Ring for live."""
+
+    async def snapshots(self, event: DoorEvent) -> list[FetchedSnapshot]:
+        """Snapshots inside the event; detections None means annotate."""
+        ...
+
+    async def clip(self, event: DoorEvent) -> FetchedClip | None:
+        """Clip bytes for the event, None when none is available."""
         ...
 
 

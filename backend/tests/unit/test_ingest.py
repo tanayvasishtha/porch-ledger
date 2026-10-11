@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from porch.adapters.local import FileMediaStore
-from porch.adapters.tape import load_tape
+from porch.adapters.tape import TapeMediaFetcher, load_tape
 from porch.config import Settings
 from porch.domain import Detection, NormBox, VisitKind
 from porch.pipeline.enrich import EnrichPorts
@@ -70,6 +70,7 @@ def mk_service(
     service = IngestService(
         ports=IngestPorts(
             source=FakeSource(list(tape.events)),
+            fetcher=TapeMediaFetcher(tape),
             media=media,
             labeler=FakeLabeler(),
             enrich=ports,
@@ -79,7 +80,6 @@ def mk_service(
             house=demo_house(),
             settings=Settings(),
             clock=clock,
-            tape_dir=tape_path,
         ),
     )
     return service, repo, media
@@ -137,6 +137,7 @@ def test_unannotated_snapshots_call_labeler(tmp_path: Path) -> None:
     service = IngestService(
         ports=IngestPorts(
             source=FakeSource(list(tape.events)),
+            fetcher=TapeMediaFetcher(tape),
             media=media,
             labeler=labeler,
             enrich=EnrichPorts(
@@ -151,7 +152,6 @@ def test_unannotated_snapshots_call_labeler(tmp_path: Path) -> None:
             house=demo_house(),
             settings=Settings(),
             clock=FakeClock(500_000),
-            tape_dir=tape_path,
         ),
     )
     report = asyncio.run(service.run_once())
