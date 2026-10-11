@@ -25,7 +25,14 @@ export interface VisitCard {
 
 export interface Inbox {
   spoken: string;
+  day_label: string;
   items: VisitCard[];
+}
+
+export interface HouseInfo {
+  name: string;
+  day_label: string;
+  residents: Resident[];
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -60,9 +67,16 @@ export const isVisitCard = (value: unknown): value is VisitCard =>
 export const isInbox = (value: unknown): value is Inbox =>
   isRecord(value) &&
   isString(value.spoken) &&
+  isString(value.day_label) &&
   Array.isArray(value.items) &&
   value.items.every(isVisitCard);
 
 export const isResidentList = (value: unknown): value is Resident[] =>
   Array.isArray(value) &&
   value.every((item) => isRecord(item) && isString(item.id) && isString(item.display_name));
+
+export const isHouseInfo = (value: unknown): value is HouseInfo =>
+  isRecord(value) &&
+  isString(value.name) &&
+  isString(value.day_label) &&
+  isResidentList(value.residents);

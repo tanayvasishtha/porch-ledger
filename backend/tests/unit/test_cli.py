@@ -16,7 +16,7 @@ def test_export_contracts(tmp_path: Path) -> None:
         "todays_visits",
         "visit_detail",
         "claim_box",
-        "residents",
+        "house_info",
         "ask",
     }
     for tool in tools:

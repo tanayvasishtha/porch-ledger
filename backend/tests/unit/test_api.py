@@ -191,15 +191,15 @@ def test_cors_preflight_on_mcp(tmp_path: Path) -> None:
     assert "mcp-protocol-version" in response.headers["access-control-allow-headers"]
 
 
-def test_mcp_lists_residents_tool(tmp_path: Path) -> None:
-    """The Echo client needs a roster over MCP without touching REST."""
+def test_mcp_lists_house_info_tool(tmp_path: Path) -> None:
+    """The Echo client needs the house header over MCP, no REST."""
 
     async def tools() -> list[str]:
         async with Client(build_mcp(mkctx(tmp_path))) as mcp:
             result = await mcp.list_tools()
         return [t.name for t in result.tools]
 
-    assert "residents" in asyncio.run(tools())
+    assert "house_info" in asyncio.run(tools())
 
 
 class _FakeSpeech:

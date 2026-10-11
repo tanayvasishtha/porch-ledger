@@ -6,11 +6,11 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
 import {
+  type HouseInfo,
   type Inbox,
+  isHouseInfo,
   isInbox,
-  isResidentList,
   isVisitCard,
-  type Resident,
   type VisitCard,
 } from './types.ts';
 
@@ -54,19 +54,11 @@ export class PorchMcp {
     await this.client.close();
   }
 
-  async residents(): Promise<Resident[]> {
-    const result = await this.client.callTool({ name: 'residents', arguments: {} });
-    if (result.isError) throw new ToolShapeError('residents');
-    const content = result.structuredContent;
-    if (
-      typeof content === 'object' &&
-      content !== null &&
-      'result' in content &&
-      isResidentList(content.result)
-    ) {
-      return content.result;
-    }
-    throw new ToolShapeError('residents');
+  async houseInfo(): Promise<HouseInfo> {
+    const result = await this.client.callTool({ name: 'house_info', arguments: {} });
+    if (result.isError) throw new ToolShapeError('house_info');
+    if (isHouseInfo(result.structuredContent)) return result.structuredContent;
+    throw new ToolShapeError('house_info');
   }
 
   async anythingForMe(residentId: string): Promise<Inbox> {

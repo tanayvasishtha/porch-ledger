@@ -57,6 +57,8 @@ def create_app(ctx: AppContext) -> FastAPI:
         json_response=True,
         transport_security=TransportSecuritySettings(
             allowed_hosts=list(ctx.settings.api.allowed_hosts),
+            # Browsers hitting /mcp cross-origin are the same origins CORS allows.
+            allowed_origins=list(ctx.settings.api.cors_origins),
         ),
     )
 

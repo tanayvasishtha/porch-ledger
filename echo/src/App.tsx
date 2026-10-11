@@ -3,8 +3,8 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 
-import { mcpUrlFromEnv, type PorchMcp } from './mcp';
-import type { Inbox, Resident, VisitCard } from './types';
+import { houseKeyFromEnv, mcpUrlFromEnv, type PorchMcp } from './mcp';
+import type { HouseInfo, Inbox, VisitCard } from './types';
 
 type Status = 'loading' | 'ready' | 'offline' | 'error';
 
@@ -15,45 +15,67 @@ interface Selected {
 
 const MUTED_KEY = 'porch-echo-muted';
 
-const todayLine = () =>
-  new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-
 export function App({ client }: { client: PorchMcp | null }) {
-  const [residents, setResidents] = useState<Resident[]>([]);
+  const [house, setHouse] = useState<HouseInfo | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [selected, setSelected] = useState<Selected | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [muted, setMuted] = useState(() => localStorage.getItem(MUTED_KEY) === '1');
   const mutedRef = useRef(muted);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAsked = useRef<string | null>(null);
   mutedRef.current = muted;
 
-  const speak = (text: string) => {
-    if (mutedRef.current || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  // Server speech first (Polly behind the API); the browser voice is the
+  // offline fallback for the local demo where /v1/speech is not configured.
+  const speak = async (text: string) => {
+    if (mutedRef.current) return;
+    let spoke = false;
+    if (client !== null) {
+      try {
+        const key = houseKeyFromEnv();
+        const res = await fetch(`${client.serverOrigin}/v1/speech`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(key ? { authorization: `Bearer ${key}` } : {}),
+          },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error(`speech ${res.status}`);
+        const body = (await res.json()) as { url?: string };
+        if (typeof body.url !== 'string') throw new Error('speech: no url');
+        const audio = new Audio(new URL(body.url, client.serverOrigin).href);
+        audioRef.current?.pause();
+        audioRef.current = audio;
+        await audio.play();
+        spoke = true;
+      } catch {
+        spoke = false;
+      }
+    }
+    if (!spoke && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
   };
 
-  const loadResidents = () => {
+  const loadHouse = () => {
     if (client === null) {
       setStatus('offline');
       return;
     }
     client
-      .residents()
-      .then((found) => {
-        setResidents(found);
+      .houseInfo()
+      .then((info) => {
+        setHouse(info);
         setStatus('ready');
       })
       .catch(() => setStatus('error'));
   };
 
-  useEffect(loadResidents, [client]);
+  useEffect(loadHouse, [client]);
 
   const ask = async (residentId: string) => {
     if (client === null || busy) return;
@@ -63,7 +85,7 @@ export function App({ client }: { client: PorchMcp | null }) {
       const inbox = await client.anythingForMe(residentId);
       setSelected({ residentId, inbox });
       setMessage('');
-      speak(inbox.spoken);
+      void speak(inbox.spoken);
     } catch {
       setMessage('The porch server did not answer. Try again.');
     } finally {
@@ -86,7 +108,10 @@ export function App({ client }: { client: PorchMcp | null }) {
     const next = !muted;
     setMuted(next);
     localStorage.setItem(MUTED_KEY, next ? '1' : '0');
-    if (next) window.speechSynthesis?.cancel();
+    if (next) {
+      window.speechSynthesis?.cancel();
+      audioRef.current?.pause();
+    }
   };
 
   const answer =
@@ -95,11 +120,11 @@ export function App({ client }: { client: PorchMcp | null }) {
   return (
     <main class="screen">
       <header class="masthead">
-        <h1>Porch Ledger</h1>
-        <span class="date">{todayLine()}</span>
+        <h1>{house?.name ?? 'Porch Ledger'}</h1>
+        <span class="date">{selected?.inbox.day_label ?? house?.day_label ?? ''}</span>
       </header>
       <nav class="residents" aria-label="Residents">
-        {residents.map((resident) => (
+        {(house?.residents ?? []).map((resident) => (
           <button
             key={resident.id}
             class="resident-chip"
@@ -130,7 +155,7 @@ export function App({ client }: { client: PorchMcp | null }) {
             type="button"
             onClick={() => {
               if (status === 'error') {
-                loadResidents();
+                loadHouse();
               } else {
                 setMessage('');
                 const retry = selected?.residentId ?? lastAsked.current;
@@ -174,12 +199,13 @@ export function App({ client }: { client: PorchMcp | null }) {
         ))}
       </section>
       <button
-        class="mute"
+        class="mute-pill"
         type="button"
+        aria-pressed={muted}
         aria-label={muted ? 'Unmute voice' : 'Mute voice'}
         onClick={toggleMute}
       >
-        {muted ? 'voice off' : 'voice on'}
+        {muted ? 'Voice off' : 'Voice on'}
       </button>
       <footer class="footer">Simulated Alexa+ screen. Talks to the Porch Ledger MCP server.</footer>
     </main>

@@ -21,5 +21,5 @@ def test_echo_fixtures_match_tool_outputs() -> None:
 
 
 def test_fixture_files_exist() -> None:
-    names = {"residents.json", "inbox-priya.json", "inbox-sam.json", "claim-box.json"}
+    names = {"house-info.json", "inbox-priya.json", "inbox-sam.json", "claim-box.json"}
     assert {p.name for p in FIXTURES.glob("*.json")} >= names

@@ -1,5 +1,7 @@
 {
-  "result": [
+  "day_label": "Monday, June 1",
+  "name": "Porch House",
+  "residents": [
     {
       "display_name": "Priya Shah",
       "id": "priya"

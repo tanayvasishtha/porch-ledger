@@ -233,6 +233,8 @@ class House:
     door_polygon: Polygon | None
     latitude: float
     longitude: float
+    # Display name for clients; empty falls back to the house id.
+    name: str = ""
 
     def __post_init__(self) -> None:
         try:

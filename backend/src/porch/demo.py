@@ -137,13 +137,13 @@ async def echo_fixtures() -> dict[str, object]:
         async with Client(build_mcp(ctx)) as mcp:
             inbox_p = await mcp.call_tool("anything_for_me", {"resident_id": "priya"})
             inbox_s = await mcp.call_tool("anything_for_me", {"resident_id": "sam"})
-            roster = await mcp.call_tool("residents", {})
+            info = await mcp.call_tool("house_info", {})
             first = inbox_p.structured_content["items"][0]["id"]
             claim = await mcp.call_tool("claim_box", {"visit_id": first, "resident_id": "priya"})
     return {
         "inbox-priya.json": inbox_p.structured_content,
         "inbox-sam.json": inbox_s.structured_content,
-        "residents.json": roster.structured_content,
+        "house-info.json": info.structured_content,
         "claim-box.json": claim.structured_content,
     }
 

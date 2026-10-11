@@ -90,9 +90,10 @@ body {
   cursor: pointer;
 }
 
+/* Sage marks the resident who is listening right now ("for you"). */
 .resident-chip[data-selected='true'] {
-  border-color: var(--amber);
-  background: var(--amber);
+  border-color: var(--sage);
+  background: var(--sage);
 }
 
 .resident-chip:focus-visible,
@@ -219,13 +220,26 @@ body {
   }
 }
 
-.mute {
+.mute-pill {
   position: absolute;
   top: 30px;
   right: 44px;
-  background: none;
-  border: none;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 2px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
   color: var(--muted);
-  font-size: 22px;
+  font: inherit;
+  font-size: 17px;
   cursor: pointer;
+}
+
+.mute-pill[aria-pressed='true'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.mute-pill:focus-visible {
+  outline: 3px solid var(--amber);
 }

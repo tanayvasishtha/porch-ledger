@@ -18,12 +18,12 @@ from porch.domain import BoxFacts, NormBox, Visit, VisitKind
 from tests.helpers import mkvisit
 from tests.unit.test_api import mkctx
 
-TOOL_NAMES = {"anything_for_me", "todays_visits", "visit_detail", "claim_box", "residents", "ask"}
+TOOL_NAMES = {"anything_for_me", "todays_visits", "visit_detail", "claim_box", "house_info", "ask"}
 READ_TOOLS = {
     "anything_for_me",
     "todays_visits",
     "visit_detail",
-    "residents",
+    "house_info",
     "ask",
 }
 

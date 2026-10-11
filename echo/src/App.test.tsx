@@ -3,12 +3,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
 import type { PorchMcp } from './mcp';
-import type { Inbox, Resident, VisitCard } from './types';
+import type { HouseInfo, Inbox, Resident, VisitCard } from './types';
 
 const RESIDENTS: Resident[] = [
   { id: 'priya', display_name: 'Priya Shah' },
   { id: 'sam', display_name: 'Sam Okafor' },
 ];
+
+const HOUSE_INFO: HouseInfo = {
+  name: 'Porch House',
+  day_label: 'Monday, June 1',
+  residents: RESIDENTS,
+};
 
 const CARD: VisitCard = {
   id: 'cb5c0e777ac34a5b',
@@ -28,12 +34,16 @@ const CARD: VisitCard = {
   version: 1,
 };
 
-const INBOX: Inbox = { spoken: 'You have a box from UPS.', items: [CARD] };
+const INBOX: Inbox = {
+  spoken: 'You have a box from UPS.',
+  day_label: 'Monday, June 1',
+  items: [CARD],
+};
 
 function fakeClient(overrides: Partial<PorchMcp> = {}): PorchMcp {
   return {
     serverOrigin: 'http://test',
-    residents: vi.fn(async () => RESIDENTS),
+    houseInfo: vi.fn(async () => HOUSE_INFO),
     anythingForMe: vi.fn(async () => INBOX),
     claimBox: vi.fn(async () => ({ ...CARD, claimed_by: 'priya' })),
     disconnect: vi.fn(async () => undefined),

@@ -77,7 +77,14 @@ class ResidentOut(BaseModel):
 
 class Inbox(BaseModel):
     spoken: str
+    day_label: str
     items: list[VisitCard]
+
+
+class HouseInfo(BaseModel):
+    name: str
+    day_label: str
+    residents: list[ResidentOut]
 
 
 class ClaimRequest(BaseModel):

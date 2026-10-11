@@ -144,6 +144,10 @@
         }
       },
       "properties": {
+        "day_label": {
+          "title": "Day Label",
+          "type": "string"
+        },
         "items": {
           "items": {
             "$ref": "#/$defs/VisitCard"
@@ -158,6 +162,7 @@
       },
       "required": [
         "spoken",
+        "day_label",
         "items"
       ],
       "title": "Inbox",
@@ -672,13 +677,13 @@
       "open_world_hint": false,
       "read_only_hint": true
     },
-    "description": "The household roster: id and display name per resident.",
+    "description": "House name, today's date label, and the resident roster.",
     "input_schema": {
       "properties": {},
-      "title": "residentsArguments",
+      "title": "house_infoArguments",
       "type": "object"
     },
-    "name": "residents",
+    "name": "house_info",
     "output_schema": {
       "$defs": {
         "ResidentOut": {
@@ -701,18 +706,28 @@
         }
       },
       "properties": {
-        "result": {
+        "day_label": {
+          "title": "Day Label",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "residents": {
           "items": {
             "$ref": "#/$defs/ResidentOut"
           },
-          "title": "Result",
+          "title": "Residents",
           "type": "array"
         }
       },
       "required": [
-        "result"
+        "name",
+        "day_label",
+        "residents"
       ],
-      "title": "residentsOutput",
+      "title": "HouseInfo",
       "type": "object"
     }
   },

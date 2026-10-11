@@ -24,6 +24,7 @@ class _HouseFile(BaseModel):
     door_polygon: tuple[Point, ...] | None
     latitude: float
     longitude: float
+    name: str = ""
 
 
 def load_house(path: Path) -> House:
@@ -44,4 +45,5 @@ def loads_house(text: str) -> House:
         door_polygon=parsed.door_polygon,
         latitude=parsed.latitude,
         longitude=parsed.longitude,
+        name=parsed.name,
     )
