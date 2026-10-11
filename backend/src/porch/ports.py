@@ -7,7 +7,6 @@ record/replay, and a fake for unit tests.
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Protocol
 
 from porch.domain import Detection, DoorEvent, RainRisk, Visit
@@ -62,9 +61,15 @@ class Speech(Protocol):
 class Repository(Protocol):
     async def save_visits(self, visits: list[Visit]) -> None: ...
 
-    async def visits_for_day(self, house_id: str, day: date) -> list[Visit]: ...
+    async def visits_between(self, house_id: str, start_ms: int, end_ms: int) -> list[Visit]:
+        """Visits whose start_ms falls in [start_ms, end_ms), ordered by start_ms then id."""
+        ...
 
     async def get_visit(self, visit_id: str) -> Visit | None: ...
+
+    async def claim(self, visit_id: str, resident_id: str) -> Visit | None:
+        """Set claimed_by, bump visit and house versions; None when missing."""
+        ...
 
     async def house_version(self, house_id: str) -> int: ...
 
