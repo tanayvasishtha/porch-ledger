@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,9 +18,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -34,20 +36,13 @@ import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvFocus
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
-
-private fun glyphColor(kind: String): Color =
-    when (kind) {
-        "delivery" -> TvColors.Amber
-        "visitor" -> TvColors.Sage
-        "car_stopped" -> TvColors.Terracotta
-        "box_gone" -> TvColors.Terracotta
-        else -> TvColors.Muted
-    }
+import ledger.porch.tv.ui.theme.kindDot
 
 @Composable
 fun TimeRail(
     cards: List<VisitCard>,
     selectedId: String?,
+    selectedFocus: FocusRequester,
     onSelect: (String) -> Unit,
     onUp: () -> Unit,
     modifier: Modifier = Modifier,
@@ -60,9 +55,10 @@ fun TimeRail(
     LazyRow(
         state = listState,
         horizontalArrangement = Arrangement.spacedBy(TvSpacing.S),
+        contentPadding = PaddingValues(horizontal = TvSpacing.OverscanH),
         modifier =
             modifier
-                .focusRestorer()
+                .focusRestorer(selectedFocus)
                 .onPreviewKeyEvent { event ->
                     val up =
                         event.type == KeyEventType.KeyDown &&
@@ -72,7 +68,17 @@ fun TimeRail(
                 },
     ) {
         itemsIndexed(cards, key = { _, card -> card.id }) { _, card ->
-            RailChip(card = card, selected = card.id == selectedId, onSelect = onSelect)
+            RailChip(
+                card = card,
+                selected = card.id == selectedId,
+                onSelect = onSelect,
+                modifier =
+                    if (card.id == selectedId) {
+                        Modifier.focusRequester(selectedFocus)
+                    } else {
+                        Modifier
+                    },
+            )
         }
     }
 }
@@ -82,6 +88,7 @@ private fun RailChip(
     card: VisitCard,
     selected: Boolean,
     onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = { onSelect(card.id) },
@@ -101,7 +108,7 @@ private fun RailChip(
                     Border(BorderStroke(TvFocus.border, TvColors.Amber)),
             ),
         modifier =
-            Modifier.onFocusChanged { focus ->
+            modifier.onFocusChanged { focus ->
                 if (focus.isFocused) onSelect(card.id)
             },
     ) {
@@ -114,11 +121,11 @@ private fun RailChip(
                     Modifier
                         .size(TvSpacing.S)
                         .clip(CircleShape)
-                        .background(glyphColor(card.kind)),
+                        .background(kindDot(card.kind)),
             )
             Text(
                 text = "${card.span} · ${card.title}",
-                style = TvType.Caption,
+                style = TvType.SpanSmall,
                 modifier = Modifier.padding(start = TvSpacing.S),
             )
         }

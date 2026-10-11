@@ -219,3 +219,49 @@ class TodayScreenshotsTest {
         composeRule.onRoot().captureRoboImage("src/test/screenshots/today_own_footage.png")
     }
 }
+
+@RunWith(AndroidJUnit4::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w1280dp-h720dp-tvdpi")
+class TodayScreenshots720Test {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @OptIn(DelicateCoilApi::class)
+    @Before
+    fun fakeImages() {
+        val engine =
+            FakeImageLoaderEngine
+                .Builder()
+                .default(ColorDrawable(android.graphics.Color.rgb(110, 128, 148)))
+                .build()
+        SingletonImageLoader.setUnsafe { context ->
+            ImageLoader.Builder(context).components { add(engine) }.build()
+        }
+    }
+
+    @Test
+    fun `delivery leaning door rain jo at 720p`() {
+        composeRule.setContent {
+            PorchTheme {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(TvColors.Bg)
+                            .padding(vertical = TvSpacing.OverscanV),
+                ) {
+                    TodayContent(
+                        cards = sampleCards(),
+                        folded = Folded(carsPassed = 2, activity = 0),
+                        selectedId = JO.id,
+                        offline = false,
+                        onSelect = {},
+                        onClaim = {},
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/today_jo_720.png")
+    }
+}

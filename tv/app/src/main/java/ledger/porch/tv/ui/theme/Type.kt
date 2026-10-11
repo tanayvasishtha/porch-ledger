@@ -13,10 +13,10 @@ private val Fraunces =
         Font(R.font.fraunces_semibold, FontWeight.SemiBold),
     )
 
-private val Atkinson =
+private val SourceSans =
     FontFamily(
-        Font(R.font.atkinson_regular, FontWeight.Normal),
-        Font(R.font.atkinson_bold, FontWeight.Bold),
+        Font(R.font.sourcesans3_regular, FontWeight.Normal),
+        Font(R.font.sourcesans3_semibold, FontWeight.SemiBold),
     )
 
 object TvType {
@@ -34,14 +34,20 @@ object TvType {
         )
     val Body =
         TextStyle(
-            fontFamily = Atkinson,
+            fontFamily = SourceSans,
             fontWeight = FontWeight.Normal,
             fontSize = 22.sp,
         )
     val Caption =
         TextStyle(
-            fontFamily = Atkinson,
+            fontFamily = SourceSans,
             fontWeight = FontWeight.Normal,
             fontSize = 18.sp,
         )
+
+    // Time spans sit in rows and columns; tnum keeps the digits aligned.
+    val Span =
+        Body.copy(fontFeatureSettings = "tnum")
+    val SpanSmall =
+        Caption.copy(fontFeatureSettings = "tnum")
 }

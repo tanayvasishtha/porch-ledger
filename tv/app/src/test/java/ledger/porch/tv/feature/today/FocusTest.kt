@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import ledger.porch.tv.data.dto.Folded
+import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.ui.theme.PorchTheme
 import ledger.porch.tv.ui.theme.TvColors
 import org.junit.Assert.assertEquals
@@ -39,9 +40,11 @@ class FocusTest {
         composeRule.waitForIdle()
     }
 
-    @Test
-    fun `initial focus, rail navigation, and up return`() {
-        var selected by mutableStateOf(PRIYA.id)
+    private fun setTodayContent(
+        cards: List<VisitCard>,
+        initial: String,
+        onSelect: (String) -> Unit = {},
+    ) {
         composeRule.setContent {
             PorchTheme {
                 Column(
@@ -51,17 +54,23 @@ class FocusTest {
                             .background(TvColors.Bg),
                 ) {
                     TodayContent(
-                        cards = sampleCards(),
+                        cards = cards,
                         folded = Folded(),
-                        selectedId = selected,
+                        selectedId = initial,
                         offline = false,
-                        onSelect = { selected = it },
+                        onSelect = onSelect,
                         onClaim = {},
                     )
                 }
             }
         }
         composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `delivery focuses primary action, rail moves selection, up returns`() {
+        var selected by mutableStateOf(PRIYA.id)
+        setTodayContent(sampleCards(), PRIYA.id) { selected = it }
 
         composeRule.onNodeWithText("It's mine").assertIsFocused()
 
@@ -72,5 +81,13 @@ class FocusTest {
 
         key(Key.DirectionUp)
         composeRule.onNodeWithText("It's mine").assertIsFocused()
+    }
+
+    @Test
+    fun `card without actions focuses its rail chip`() {
+        setTodayContent(listOf(VISITOR, STOPPED), VISITOR.id)
+        composeRule
+            .onNodeWithText("1:30 pm · Visitor")
+            .assertIsFocused()
     }
 }

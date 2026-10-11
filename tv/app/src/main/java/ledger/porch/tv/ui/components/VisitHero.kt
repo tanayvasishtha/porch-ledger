@@ -3,9 +3,12 @@ package ledger.porch.tv.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -23,64 +26,91 @@ import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
 
+internal fun hasActions(card: VisitCard): Boolean = (card.recipientId != null && card.claimedBy == null) || card.clipUrl != null
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VisitHero(
     card: VisitCard,
     primaryFocus: FocusRequester,
     onClaim: () -> Unit,
-    onNotMine: () -> Unit,
     onPlayClip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier =
             modifier
                 .clip(RoundedCornerShape(TvSpacing.M))
                 .background(TvColors.Paper)
                 .padding(TvSpacing.L),
-        verticalArrangement = Arrangement.spacedBy(TvSpacing.M),
+        horizontalArrangement = Arrangement.spacedBy(TvSpacing.L),
     ) {
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(TvSpacing.M),
-        ) {
-            Text(text = card.title, style = TvType.Title, color = TvColors.Ink)
-            Text(
-                text = card.span,
-                style = TvType.Body,
-                color = TvColors.Ink,
-                modifier = Modifier.weight(1f),
-            )
-            if (card.provenance == "own") {
-                OwnFootageBadge()
-            }
-        }
         AsyncImage(
             model = card.heroUrl,
             contentDescription = card.title,
             contentScale = ContentScale.Crop,
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .weight(0.58f)
                     .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(TvSpacing.S))
                     .background(TvColors.Ink),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(TvSpacing.S)) {
-            card.facts.forEach { fact -> FactChip(fact) }
+        Column(
+            modifier =
+                Modifier
+                    .weight(0.42f)
+                    .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(TvSpacing.M),
+        ) {
+            HeroBody(
+                card = card,
+                primaryFocus = primaryFocus,
+                onClaim = onClaim,
+                onPlayClip = onPlayClip,
+            )
         }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
+    card: VisitCard,
+    primaryFocus: FocusRequester,
+    onClaim: () -> Unit,
+    onPlayClip: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = card.description,
-            style = TvType.Body,
+            text = card.title,
+            style = TvType.Display,
             color = TvColors.Ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
+        if (card.provenance == "own") {
+            OwnFootageBadge()
+        }
+    }
+    Text(text = card.span, style = TvType.Span, color = TvColors.Ink)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(TvSpacing.S),
+        verticalArrangement = Arrangement.spacedBy(TvSpacing.S),
+    ) {
+        card.facts.forEach { fact -> FactChip(fact) }
+    }
+    Text(
+        text = card.description,
+        style = TvType.Body,
+        color = TvColors.Ink,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    Spacer(modifier = Modifier.weight(1f))
+    if (hasActions(card)) {
         HeroActions(
             card = card,
             primaryFocus = primaryFocus,
             onClaim = onClaim,
-            onNotMine = onNotMine,
             onPlayClip = onPlayClip,
         )
     }
@@ -91,21 +121,25 @@ private fun HeroActions(
     card: VisitCard,
     primaryFocus: FocusRequester,
     onClaim: () -> Unit,
-    onNotMine: () -> Unit,
     onPlayClip: () -> Unit,
 ) {
+    val claimable = card.recipientId != null && card.claimedBy == null
     Row(horizontalArrangement = Arrangement.spacedBy(TvSpacing.M)) {
-        TvAction(
-            label = "It's mine",
-            enabled = card.recipientId != null && card.claimedBy == null,
-            onClick = onClaim,
-            modifier = Modifier.focusRequester(primaryFocus),
-        )
-        TvAction(label = "Not mine", enabled = false, onClick = onNotMine)
-        TvAction(
-            label = "Play clip",
-            enabled = card.clipUrl != null,
-            onClick = onPlayClip,
-        )
+        if (claimable) {
+            TvAction(
+                label = "It's mine",
+                enabled = true,
+                onClick = onClaim,
+                modifier = Modifier.focusRequester(primaryFocus),
+            )
+        }
+        if (card.clipUrl != null) {
+            TvAction(
+                label = "Play clip",
+                enabled = true,
+                onClick = onPlayClip,
+                modifier = if (claimable) Modifier else Modifier.focusRequester(primaryFocus),
+            )
+        }
     }
 }

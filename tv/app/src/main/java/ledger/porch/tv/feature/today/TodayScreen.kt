@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,11 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.tv.material3.Text
@@ -27,6 +26,7 @@ import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.ui.components.FoldedLine
 import ledger.porch.tv.ui.components.TimeRail
 import ledger.porch.tv.ui.components.VisitHero
+import ledger.porch.tv.ui.components.hasActions
 import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
@@ -48,10 +48,7 @@ fun TodayScreen(
             modifier
                 .fillMaxSize()
                 .background(TvColors.Bg)
-                .padding(
-                    horizontal = TvSpacing.OverscanH,
-                    vertical = TvSpacing.OverscanV,
-                ),
+                .padding(vertical = TvSpacing.OverscanV),
         verticalArrangement = Arrangement.spacedBy(TvSpacing.M),
     ) {
         when (val current = state) {
@@ -93,6 +90,7 @@ internal fun ColumnScope.TodayContent(
             text = "Showing the last update. Reconnecting.",
             style = TvType.Caption,
             color = TvColors.Muted,
+            modifier = Modifier.padding(horizontal = TvSpacing.OverscanH),
         )
     }
     if (cards.isEmpty()) {
@@ -101,26 +99,36 @@ internal fun ColumnScope.TodayContent(
     }
     val selected = cards.firstOrNull { it.id == selectedId } ?: cards.first()
     val heroFocus = remember { FocusRequester() }
-    Row(modifier = Modifier.weight(1f)) {
-        VisitHero(
-            card = selected,
-            primaryFocus = heroFocus,
-            onClaim = { onClaim(selected) },
-            onNotMine = {},
-            onPlayClip = {},
-            modifier = Modifier.weight(0.66f),
-        )
-        Spacer(modifier = Modifier.weight(0.34f))
-    }
+    val railFocus = remember { FocusRequester() }
+    VisitHero(
+        card = selected,
+        primaryFocus = heroFocus,
+        onClaim = { onClaim(selected) },
+        onPlayClip = {},
+        modifier =
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = TvSpacing.OverscanH),
+    )
     TimeRail(
         cards = cards,
         selectedId = selected.id,
+        selectedFocus = railFocus,
         onSelect = onSelect,
         onUp = { heroFocus.requestFocus() },
         modifier = Modifier.fillMaxWidth(),
     )
-    FoldedLine(folded = folded)
-    LaunchedEffect(Unit) { heroFocus.requestFocus() }
+    FoldedLine(
+        folded = folded,
+        modifier = Modifier.padding(horizontal = TvSpacing.OverscanH),
+    )
+    LaunchedEffect(Unit) {
+        // Lazy rail items apply after the first frame; wait before asking
+        // for focus or the requester is not yet initialized.
+        withFrameNanos { }
+        if (hasActions(selected)) heroFocus.requestFocus() else railFocus.requestFocus()
+    }
 }
 
 @Composable
