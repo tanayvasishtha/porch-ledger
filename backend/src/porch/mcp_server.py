@@ -9,9 +9,11 @@ from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext
 from porch.api.schemas import Inbox, ResidentOut, VisitCard, VisitDetail
 from porch.domain import Resident, Visit, VisitKind, spoken_inbox
+from porch.pipeline.ask import AskAnswer
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
 _CLOSED = ToolAnnotations(open_world_hint=False)
+_MAX_QUESTION = 300
 
 
 def _resident(ctx: AppContext, resident_id: str) -> Resident:
@@ -75,6 +77,18 @@ def build_mcp(ctx: AppContext) -> MCPServer:
             msg = f"unknown visit: {visit_id}"
             raise ToolError(msg)
         return cards.to_detail(visit, ctx)
+
+    @mcp.tool(annotations=_READ_ONLY)
+    async def ask(question: str, resident_id: str | None = None) -> AskAnswer:
+        """Answer a household question from saved visits, citing visit ids."""
+        if len(question) > _MAX_QUESTION:
+            msg = "question too long"
+            raise ToolError(msg)
+        if resident_id is not None:
+            _resident(ctx, resident_id)
+        if ctx.ask is None:
+            return AskAnswer(answer="I could not answer that just now.", visit_ids=[])
+        return await ctx.ask.answer(question, resident_id)
 
     @mcp.tool(annotations=_READ_ONLY)
     async def residents() -> list[ResidentOut]:

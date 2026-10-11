@@ -600,6 +600,60 @@
       "open_world_hint": false,
       "read_only_hint": true
     },
+    "description": "Answer a household question from saved visits, citing visit ids.",
+    "input_schema": {
+      "properties": {
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "resident_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resident Id"
+        }
+      },
+      "required": [
+        "question"
+      ],
+      "title": "askArguments",
+      "type": "object"
+    },
+    "name": "ask",
+    "output_schema": {
+      "properties": {
+        "answer": {
+          "title": "Answer",
+          "type": "string"
+        },
+        "visit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visit Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "answer",
+        "visit_ids"
+      ],
+      "title": "AskAnswer",
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "open_world_hint": false,
+      "read_only_hint": true
+    },
     "description": "The household roster: id and display name per resident.",
     "input_schema": {
       "properties": {},

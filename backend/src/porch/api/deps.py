@@ -1,11 +1,17 @@
 """App context: everything a request needs, stored on app.state once."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from fastapi import Request
 
 from porch.config import Settings
 from porch.domain import House
+
+if TYPE_CHECKING:
+    from porch.pipeline.ask import HouseholdAsk
 from porch.ports import Clock, EventSink, MediaStore, Repository
 
 
@@ -18,6 +24,9 @@ class AppContext:
     clock: Clock
     # Where verified webhook events go; None means POST /ring/webhook is off.
     sink: EventSink | None = None
+    # Household question agent; None makes the ask tool return its fallback.
+    # Household question agent; None makes the ask tool return its fallback.
+    ask: HouseholdAsk | None = None
 
 
 def get_ctx(request: Request) -> AppContext:

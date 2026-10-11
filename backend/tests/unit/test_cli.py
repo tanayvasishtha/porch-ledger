@@ -17,6 +17,7 @@ def test_export_contracts(tmp_path: Path) -> None:
         "visit_detail",
         "claim_box",
         "residents",
+        "ask",
     }
     for tool in tools:
         assert "input_schema" in tool or "inputSchema" in tool
