@@ -32,7 +32,10 @@ import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
 
 @Composable
-fun TodayScreen(viewModel: TodayViewModel, modifier: Modifier = Modifier) {
+fun TodayScreen(
+    viewModel: TodayViewModel,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
@@ -60,7 +63,8 @@ fun TodayScreen(viewModel: TodayViewModel, modifier: Modifier = Modifier) {
                     folded = current.folded,
                     selectedId = current.selectedId,
                     offline = false,
-                    viewModel = viewModel,
+                    onSelect = viewModel::select,
+                    onClaim = { card -> viewModel.claimSelected(card) },
                 )
             is TodayUiState.Offline ->
                 TodayContent(
@@ -68,19 +72,21 @@ fun TodayScreen(viewModel: TodayViewModel, modifier: Modifier = Modifier) {
                     folded = current.folded,
                     selectedId = null,
                     offline = true,
-                    viewModel = viewModel,
+                    onSelect = viewModel::select,
+                    onClaim = { card -> viewModel.claimSelected(card) },
                 )
         }
     }
 }
 
 @Composable
-private fun ColumnScope.TodayContent(
+internal fun ColumnScope.TodayContent(
     cards: List<VisitCard>,
     folded: Folded,
     selectedId: String?,
     offline: Boolean,
-    viewModel: TodayViewModel,
+    onSelect: (String) -> Unit,
+    onClaim: (VisitCard) -> Unit,
 ) {
     if (offline) {
         Text(
@@ -99,9 +105,7 @@ private fun ColumnScope.TodayContent(
         VisitHero(
             card = selected,
             primaryFocus = heroFocus,
-            onClaim = {
-                selected.recipientId?.let { viewModel.claim(selected.id, it) }
-            },
+            onClaim = { onClaim(selected) },
             onNotMine = {},
             onPlayClip = {},
             modifier = Modifier.weight(0.66f),
@@ -111,7 +115,7 @@ private fun ColumnScope.TodayContent(
     TimeRail(
         cards = cards,
         selectedId = selected.id,
-        onSelect = viewModel::select,
+        onSelect = onSelect,
         onUp = { heroFocus.requestFocus() },
         modifier = Modifier.fillMaxWidth(),
     )

@@ -8,7 +8,10 @@ import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvType
 
 @Composable
-fun FoldedLine(folded: Folded, modifier: Modifier = Modifier) {
+fun FoldedLine(
+    folded: Folded,
+    modifier: Modifier = Modifier,
+) {
     val parts = mutableListOf<String>()
     if (folded.carsPassed > 0) parts += "${folded.carsPassed} cars passed"
     if (folded.activity > 0) parts += "${folded.activity} other motion"

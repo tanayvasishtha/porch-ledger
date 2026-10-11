@@ -25,7 +25,7 @@ object TvSpacing {
 }
 
 object TvFocus {
-    const val Scale = 1.04f
-    val Border = 3.dp
-    const val DurationMs = 180
+    const val SCALE = 1.04f
+    val border = 3.dp
+    const val DURATION_MS = 180
 }

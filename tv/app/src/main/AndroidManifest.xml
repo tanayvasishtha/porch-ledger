@@ -9,6 +9,8 @@
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:banner="@drawable/banner"
         android:icon="@drawable/banner"
         android:label="Porch Ledger"
@@ -25,5 +27,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Registered so Robolectric unit tests can launch createComposeRule. -->
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="false" />
     </application>
 </manifest>

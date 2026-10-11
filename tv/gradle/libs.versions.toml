@@ -43,6 +43,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 junit = { module = "junit:junit", version.ref = "junit" }

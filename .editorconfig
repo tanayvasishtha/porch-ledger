@@ -13,3 +13,6 @@ indent_size = 4
 [*.{ts,tsx,json,yaml,yml,md}]
 indent_style = space
 indent_size = 2
+
+[tv/**/*.{kt,kts}]
+max_line_length = 140

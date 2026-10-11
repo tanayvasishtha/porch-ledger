@@ -17,5 +17,7 @@ sealed interface TodayUiState {
         val folded: Folded,
     ) : TodayUiState
 
-    data class Error(val message: String) : TodayUiState
+    data class Error(
+        val message: String,
+    ) : TodayUiState
 }

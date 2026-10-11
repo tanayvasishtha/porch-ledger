@@ -25,3 +25,6 @@
 - Ktor client (OkHttp engine) + kotlinx.serialization: TV API client over the shared OpenAPI/golden contract; okhttp pinned to 5.4 because 5.5 requires compileSdk 37.
 - DataStore preferences: persists the last good visit list for offline start.
 - Coil 3.5.0: hero image loading on TV; 3.6.x requires compileSdk 37, 3.5 stays on 36.
+- Roborazzi + Robolectric + coil-test: JVM screenshot and focus tests, goldens in tv/app/src/test/screenshots.
+- Turbine + kotlinx-coroutines-test: StateFlow assertions in ViewModel tests.
+- Spotless (ktlint) + detekt: TV code style and complexity gates; detekt runs on main sources only.

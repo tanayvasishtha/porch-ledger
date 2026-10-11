@@ -22,23 +22,28 @@ class VisitRepository(
     private var cached: VisitList? = null
 
     suspend fun warmStart(): VisitList? {
-        cached?.let { return withResolvedMedia(it) }
-        val raw = store.data.first()[KEY_BODY] ?: return null
-        cached = runCatching { json.decodeFromString<VisitList>(raw) }.getOrNull()
+        if (cached == null) {
+            val raw = store.data.first()[KEY_BODY]
+            cached =
+                raw?.let {
+                    runCatching { json.decodeFromString<VisitList>(it) }.getOrNull()
+                }
+        }
         return cached?.let(::withResolvedMedia)
     }
 
-    suspend fun refresh(day: String?): Result<VisitList> = runCatching {
-        when (val response = api.visits(day, etag)) {
-            is VisitsResponse.NotModified -> cached ?: error("304 without a cached body")
-            is VisitsResponse.Fresh -> {
-                etag = response.etag
-                cached = response.body
-                store.edit { prefs -> prefs[KEY_BODY] = json.encodeToString(response.body) }
-                response.body
+    suspend fun refresh(day: String?): Result<VisitList> =
+        runCatching {
+            when (val response = api.visits(day, etag)) {
+                is VisitsResponse.NotModified -> cached ?: error("304 without a cached body")
+                is VisitsResponse.Fresh -> {
+                    etag = response.etag
+                    cached = response.body
+                    store.edit { prefs -> prefs[KEY_BODY] = json.encodeToString(response.body) }
+                    response.body
+                }
             }
-        }
-    }.map(::withResolvedMedia)
+        }.map(::withResolvedMedia)
 
     suspend fun detail(visitId: String): Result<VisitDetail> =
         runCatching { api.detail(visitId) }.map { detail ->
@@ -48,26 +53,32 @@ class VisitRepository(
             )
         }
 
-    suspend fun claim(visitId: String, residentId: String): Result<VisitCard> =
+    suspend fun claim(
+        visitId: String,
+        residentId: String,
+    ): Result<VisitCard> =
         runCatching { api.claim(visitId, residentId) }.map { card ->
-            cached = cached?.let { list ->
-                list.copy(cards = list.cards.map { if (it.id == card.id) card else it })
-            }
+            cached =
+                cached?.let { list ->
+                    list.copy(cards = list.cards.map { if (it.id == card.id) card else it })
+                }
             card
         }
 
-    suspend fun residents(): Result<List<ResidentOut>> = runCatching {
-        api.residents()
-    }
+    suspend fun residents(): Result<List<ResidentOut>> =
+        runCatching {
+            api.residents()
+        }
 
     fun cachedOrNull(): VisitList? = cached?.let(::withResolvedMedia)
 
-    private fun withResolvedMedia(list: VisitList): VisitList = list.copy(
-        cards = list.cards.map { card ->
-            card.copy(heroUrl = resolve(card.heroUrl), clipUrl = resolve(card.clipUrl))
-        },
-    )
+    private fun withResolvedMedia(list: VisitList): VisitList =
+        list.copy(
+            cards =
+                list.cards.map { card ->
+                    card.copy(heroUrl = resolve(card.heroUrl), clipUrl = resolve(card.clipUrl))
+                },
+        )
 
-    private fun resolve(url: String?): String? =
-        if (url != null && url.startsWith("/")) api.baseUrl.trimEnd('/') + url else url
+    private fun resolve(url: String?): String? = if (url != null && url.startsWith("/")) api.baseUrl.trimEnd('/') + url else url
 }

@@ -94,11 +94,11 @@ private fun RailChip(
                 focusedContainerColor = TvColors.Paper,
                 focusedContentColor = TvColors.Ink,
             ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.Scale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.SCALE),
         border =
             ClickableSurfaceDefaults.border(
                 focusedBorder =
-                    Border(BorderStroke(TvFocus.Border, TvColors.Amber)),
+                    Border(BorderStroke(TvFocus.border, TvColors.Amber)),
             ),
         modifier =
             Modifier.onFocusChanged { focus ->

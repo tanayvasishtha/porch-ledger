@@ -7,35 +7,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import ledger.porch.tv.R
 
-private val Fraunces = FontFamily(
-    Font(R.font.fraunces_regular, FontWeight.Normal),
-    Font(R.font.fraunces_semibold, FontWeight.SemiBold),
-)
+private val Fraunces =
+    FontFamily(
+        Font(R.font.fraunces_regular, FontWeight.Normal),
+        Font(R.font.fraunces_semibold, FontWeight.SemiBold),
+    )
 
-private val Atkinson = FontFamily(
-    Font(R.font.atkinson_regular, FontWeight.Normal),
-    Font(R.font.atkinson_bold, FontWeight.Bold),
-)
+private val Atkinson =
+    FontFamily(
+        Font(R.font.atkinson_regular, FontWeight.Normal),
+        Font(R.font.atkinson_bold, FontWeight.Bold),
+    )
 
 object TvType {
-    val Display = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 48.sp,
-    )
-    val Title = TextStyle(
-        fontFamily = Fraunces,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp,
-    )
-    val Body = TextStyle(
-        fontFamily = Atkinson,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-    )
-    val Caption = TextStyle(
-        fontFamily = Atkinson,
-        fontWeight = FontWeight.Normal,
-        fontSize = 18.sp,
-    )
+    val Display =
+        TextStyle(
+            fontFamily = Fraunces,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 48.sp,
+        )
+    val Title =
+        TextStyle(
+            fontFamily = Fraunces,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 32.sp,
+        )
+    val Body =
+        TextStyle(
+            fontFamily = Atkinson,
+            fontWeight = FontWeight.Normal,
+            fontSize = 22.sp,
+        )
+    val Caption =
+        TextStyle(
+            fontFamily = Atkinson,
+            fontWeight = FontWeight.Normal,
+            fontSize = 18.sp,
+        )
 }

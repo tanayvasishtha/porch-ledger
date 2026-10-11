@@ -1,5 +1,8 @@
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
+# Machine JDK for the tv recipe; a real JAVA_HOME always wins.
+export JAVA_HOME := env_var_or_default("JAVA_HOME", "C:/Users/Dell/AppData/Local/Programs/Microsoft/jdk-17.0.10.7-hotspot")
+
 check-prose:
     uv run scripts/check_prose.py
 
@@ -10,7 +13,11 @@ backend:
     uv run mypy
     uv run pytest --cov=porch.domain --cov=porch.adapters --cov=porch.api --cov-report=term-missing --cov-fail-under=90
 
-check: check-prose backend
+[working-directory: 'tv']
+tv:
+    ./gradlew.bat spotlessCheck detekt lint testDebugUnitTest verifyRoborazziDebug assembleRelease
+
+check: check-prose backend tv
 
 [working-directory: 'backend']
 contracts:

@@ -17,7 +17,10 @@ import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
 
 @Composable
-fun FactChip(fact: String, modifier: Modifier = Modifier) {
+fun FactChip(
+    fact: String,
+    modifier: Modifier = Modifier,
+) {
     val bg =
         when {
             fact.startsWith("Leaning on") || fact.startsWith("Rain likely") -> {
@@ -58,12 +61,12 @@ fun TvAction(
                 disabledContainerColor = TvColors.Muted,
                 disabledContentColor = TvColors.Ink,
             ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.Scale),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.SCALE),
         border =
             ClickableSurfaceDefaults.border(
                 focusedBorder =
                     Border(
-                        border = BorderStroke(TvFocus.Border, TvColors.Ink),
+                        border = BorderStroke(TvFocus.border, TvColors.Ink),
                     ),
             ),
         modifier = modifier,

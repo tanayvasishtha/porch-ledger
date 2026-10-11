@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -49,6 +52,49 @@ android {
     sourceSets.named("test") {
         resources.srcDir("../../backend/tests/golden")
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
+    lint {
+        warningsAsErrors = true
+        abortOnError = true
+        disable +=
+            setOf(
+                // Versions pinned for AGP 8 / compileSdk 36 compatibility.
+                "OldTargetApi",
+                "AndroidGradlePluginVersion",
+                "GradleDependency",
+                "NewerVersionAvailable",
+                // tv banner is a mandatory 320x180 full-bleed asset, not a launcher icon.
+                "IconLauncherShape",
+                // local.properties is generated per machine.
+                "PropertyEscape",
+            )
+    }
+}
+
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        ktlint(libs.versions.ktlint.get())
+    }
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktlint(libs.versions.ktlint.get())
+    }
+}
+
+detekt {
+    config.setFrom(files("../detekt.yml"))
+    buildUponDefaultConfig = true
+    // Test files keep fixture builders with long parameter lists.
+    source.setFrom(files("src/main"))
+}
+
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
 
 configurations.all {
@@ -88,4 +134,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.turbine)
+    testImplementation(libs.coil.test)
+    testImplementation(libs.compose.ui.test.junit4)
 }

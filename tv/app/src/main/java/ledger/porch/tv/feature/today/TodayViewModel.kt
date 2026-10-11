@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ledger.porch.tv.data.VisitRepository
+import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.data.dto.VisitList
 
 private const val MAX_BACKOFF_MS = 60_000L
@@ -56,7 +57,15 @@ class TodayViewModel(
         }
     }
 
-    fun claim(id: String, residentId: String) {
+    fun claimSelected(card: VisitCard) {
+        val residentId = card.recipientId ?: return
+        claim(card.id, residentId)
+    }
+
+    fun claim(
+        id: String,
+        residentId: String,
+    ) {
         optimisticClaim(id, residentId)
         viewModelScope.launch {
             repo.claim(id, residentId)
@@ -66,7 +75,10 @@ class TodayViewModel(
         }
     }
 
-    private fun optimisticClaim(id: String, residentId: String) {
+    private fun optimisticClaim(
+        id: String,
+        residentId: String,
+    ) {
         val current = _state.value
         if (current is TodayUiState.Ready) {
             _state.value =
@@ -82,7 +94,10 @@ class TodayViewModel(
     private fun publish(list: VisitList) {
         val selected =
             list.cards.firstOrNull { it.id == selectedId }?.id
-                ?: list.cards.firstOrNull()?.id.also { selectedId = it }
+                ?: list.cards
+                    .firstOrNull()
+                    ?.id
+                    .also { selectedId = it }
         _state.value =
             TodayUiState.Ready(
                 cards = list.cards,

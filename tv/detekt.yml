@@ -1,0 +1,23 @@
+style:
+  WildcardImport:
+    active: true
+    excludeImports:
+      - "kotlinx.coroutines.*"
+      - "java.util.*"
+  MagicNumber:
+    ignoreAnnotated:
+      - "Composable"
+    ignorePropertyDeclaration: true
+  MaxLineLength:
+    maxLineLength: 140
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - "Composable"
+complexity:
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    ignoreAnnotated:
+      - "Composable"

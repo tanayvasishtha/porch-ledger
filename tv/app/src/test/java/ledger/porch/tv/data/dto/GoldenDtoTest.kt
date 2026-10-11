@@ -10,13 +10,13 @@ import org.junit.Test
 
 class GoldenDtoTest {
     @OptIn(ExperimentalSerializationApi::class)
-    private val json = Json {
-        ignoreUnknownKeys = true
-        namingStrategy = JsonNamingStrategy.SnakeCase
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            namingStrategy = JsonNamingStrategy.SnakeCase
+        }
 
-    private fun resource(name: String): String =
-        requireNotNull(javaClass.classLoader?.getResource(name)).readText()
+    private fun resource(name: String): String = requireNotNull(javaClass.classLoader?.getResource(name)).readText()
 
     @Test
     fun `golden visit list decodes`() {

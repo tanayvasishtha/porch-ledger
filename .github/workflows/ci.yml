@@ -28,6 +28,20 @@ jobs:
       - run: uv run pytest --cov=porch.domain --cov=porch.adapters --cov=porch.api --cov-report=term-missing --cov-fail-under=90
       - run: uv run python -m porch export-contracts --out ../contracts && git -C .. diff --exit-code contracts
 
+  tv:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tv
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew spotlessCheck detekt lint testDebugUnitTest verifyRoborazziDebug assembleRelease
+
   secrets:
     runs-on: ubuntu-latest
     steps:
