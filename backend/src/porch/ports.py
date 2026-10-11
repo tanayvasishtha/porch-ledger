@@ -35,6 +35,12 @@ class EventSource(Protocol):
         ...
 
 
+class EventSink(Protocol):
+    """Where webhook events go once verified and parsed."""
+
+    async def accept(self, event: DoorEvent) -> None: ...
+
+
 class MediaFetcher(Protocol):
     """Where event media comes from: tape files for replay, Ring for live."""
 

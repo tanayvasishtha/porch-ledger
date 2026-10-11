@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import mimetypes
 from datetime import date
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from porch.adapters.local import FileMediaStore, MediaKeyError
+from porch.adapters.ring.recorder import load_env_value
+from porch.adapters.ring.webhook import (
+    MAX_BODY_BYTES,
+    WebhookSignatureError,
+    parse_webhook,
+    verify_signature,
+)
 from porch.api import cards
 from porch.api.days import day_bounds, today
 from porch.api.deps import AppContext, get_ctx
@@ -25,6 +33,8 @@ from porch.ports import PortError
 
 router = APIRouter()
 health_router = APIRouter()
+# Unguarded: Ring signs webhooks with HMAC, it cannot send a house bearer.
+webhook_router = APIRouter()
 
 
 def _require_house(ctx: AppContext, house_id: str) -> House:
@@ -103,6 +113,28 @@ async def list_residents(
 ) -> list[ResidentOut]:
     house = _require_house(ctx, house_id)
     return [ResidentOut(id=r.id, display_name=r.display_name) for r in house.residents]
+
+
+@webhook_router.post("/ring/webhook", include_in_schema=False)
+async def ring_webhook(request: Request, ctx: Annotated[AppContext, Depends(get_ctx)]) -> Response:
+    """Ring webhook: verify HMAC, parse, hand to the configured sink."""
+    body = await request.body()
+    if len(body) > MAX_BODY_BYTES:
+        raise HTTPException(status_code=413, detail="webhook body too large")
+    secret = load_env_value(ctx.settings.ring.webhook_secret_env, Path.cwd())
+    if secret is None:
+        raise HTTPException(status_code=503, detail="webhook secret not configured")
+    try:
+        verify_signature(request.headers, body, secret)
+    except WebhookSignatureError as exc:
+        raise HTTPException(status_code=401, detail="bad signature") from exc
+    event = parse_webhook(body)
+    if event is None:
+        return Response(status_code=204)
+    if ctx.sink is None:
+        raise HTTPException(status_code=503, detail="no event sink configured")
+    await ctx.sink.accept(event)
+    return Response(status_code=202)
 
 
 @router.get("/v1/media/{key}")

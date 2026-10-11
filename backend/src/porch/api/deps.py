@@ -6,7 +6,7 @@ from fastapi import Request
 
 from porch.config import Settings
 from porch.domain import House
-from porch.ports import Clock, MediaStore, Repository
+from porch.ports import Clock, EventSink, MediaStore, Repository
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,6 +16,8 @@ class AppContext:
     media: MediaStore
     house: House
     clock: Clock
+    # Where verified webhook events go; None means POST /ring/webhook is off.
+    sink: EventSink | None = None
 
 
 def get_ctx(request: Request) -> AppContext:

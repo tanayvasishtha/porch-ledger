@@ -23,6 +23,15 @@ class RingSettings(BaseModel):
     max_retries: int = Field(default=1, ge=0)
     snapshots_per_event: int = Field(default=3, gt=0)
     clip_max_duration_ms: int = Field(default=900_000, gt=0)
+    # Env var names; the secrets themselves never live in settings.
+    access_token_env: str = "RING_ACCESS_TOKEN"
+    webhook_secret_env: str = "RING_WEBHOOK_SECRET"
+    history_page_limit: int = Field(default=5, gt=0)
+    # Media Clips docs: on 416/425 retry the unchanged request with the
+    # capped sequence 5, 10, 20, 30 then 30 s, up to about two minutes.
+    media_retry_schedule_s: tuple[int, ...] = (5, 10, 20, 30, 30, 30)
+    # Fractions of the event duration at which snapshots are requested.
+    snapshot_offsets: tuple[float, ...] = (0.0, 0.5, 1.0)
 
 
 class EngineSettings(BaseModel):

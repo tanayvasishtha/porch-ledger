@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from porch.api.auth import BearerASGIMiddleware, bearer_guard
 from porch.api.deps import AppContext
-from porch.api.routes import health_router, router
+from porch.api.routes import health_router, router, webhook_router
 from porch.api.schemas import PROBLEM_MEDIA_TYPE, Problem
 from porch.mcp_server import build_mcp
 
@@ -78,6 +78,7 @@ def create_app(ctx: AppContext) -> FastAPI:
     app.add_exception_handler(RequestValidationError, _validation_handler)
     app.include_router(health_router)
     app.include_router(router, dependencies=[Depends(bearer_guard)])
+    app.include_router(webhook_router)
     app.mount(
         "/mcp",
         BearerASGIMiddleware(mcp_http, ctx.settings.api.house_key_sha256),

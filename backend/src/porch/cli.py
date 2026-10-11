@@ -12,8 +12,11 @@ import uvicorn
 from mcp import Client
 from mcp.server import MCPServer
 
+from porch.adapters.cassette import Cassette
 from porch.adapters.local import FileMediaStore, SqliteRepository
 from porch.adapters.local.house_file import load_house
+from porch.adapters.ring import RingClient
+from porch.adapters.ring.recorder import TapeRecorder, load_env_value
 from porch.adapters.tape import load_tape
 from porch.api.app import create_app
 from porch.api.days import day_bounds, today
@@ -95,6 +98,32 @@ def _demo(args: argparse.Namespace) -> None:
         uvicorn.run(create_app(ctx), host=args.host, port=args.port)
 
 
+def _record(args: argparse.Namespace) -> None:
+    settings = Settings()
+    token = load_env_value(settings.ring.access_token_env, Path.cwd())
+    if token is None:
+        print(f"missing access token: set {settings.ring.access_token_env}")
+        raise SystemExit(2)
+    client = RingClient(settings, token)
+    device_id = args.device
+    if device_id == "auto":
+        devices = asyncio.run(client.devices())
+        if not devices:
+            print("no accessible devices on this account")
+            raise SystemExit(2)
+        device_id = str(devices[0]["id"])
+    cassette = Cassette(Path(args.out) / "cassette", "live")
+    recorder = TapeRecorder(
+        client=client,
+        settings=settings,
+        device_id=device_id,
+        repo=SqliteRepository(settings.api.sqlite_path),
+        cassette=cassette,
+        clock=SystemClock(),
+    )
+    asyncio.run(recorder.record(args.minutes, Path(args.out)))
+
+
 def main(argv: list[str] | None = None) -> None:
     """porch serve | porch export-contracts --out <dir>."""
     parser = argparse.ArgumentParser(prog="porch")
@@ -112,5 +141,10 @@ def main(argv: list[str] | None = None) -> None:
     demo.add_argument("--host", default="127.0.0.1")
     demo.add_argument("--port", type=int, default=8000)
     demo.set_defaults(func=_demo)
+    record_cmd = sub.add_parser("record", help="record a live Ring device into a tape")
+    record_cmd.add_argument("--device", default="auto", help="device id or auto")
+    record_cmd.add_argument("--minutes", type=int, required=True)
+    record_cmd.add_argument("--out", required=True, help="tape directory to write")
+    record_cmd.set_defaults(func=_record)
     args = parser.parse_args(argv)
     args.func(args)
