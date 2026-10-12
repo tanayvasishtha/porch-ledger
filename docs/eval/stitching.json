@@ -1,0 +1,178 @@
+{
+  "clean": {
+    "accuracy": 1.0,
+    "alert_reduction": 0.6228,
+    "baseline_alerts": 1617,
+    "cards_shown": 610,
+    "confusion": {
+      "activity->activity": 131,
+      "box_gone->box_gone": 160,
+      "car_stopped->car_stopped": 133,
+      "cars_passed->cars_passed": 459,
+      "delivery->delivery": 180,
+      "visitor->visitor": 137
+    },
+    "days": 50,
+    "folded_visits": 590,
+    "noise": {
+      "drop_box_frame": 0.0,
+      "false_box_frame": 0.0,
+      "jitter": 0.0
+    },
+    "per_kind": {
+      "activity": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "box_gone": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "car_stopped": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "cars_passed": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "delivery": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "visitor": {
+        "precision": 1.0,
+        "recall": 1.0
+      }
+    },
+    "scenarios": 1200,
+    "scenarios_per_day": 24,
+    "seed": 20261011
+  },
+  "harsh": {
+    "accuracy": 0.7717,
+    "alert_reduction": 0.5785,
+    "baseline_alerts": 1637,
+    "cards_shown": 690,
+    "confusion": {
+      "activity->activity": 112,
+      "activity->box_gone": 9,
+      "activity->delivery": 10,
+      "box_gone->box_gone": 115,
+      "box_gone->delivery": 23,
+      "box_gone->visitor": 22,
+      "car_stopped->box_gone": 7,
+      "car_stopped->car_stopped": 110,
+      "car_stopped->delivery": 16,
+      "cars_passed->box_gone": 34,
+      "cars_passed->cars_passed": 373,
+      "cars_passed->delivery": 52,
+      "delivery->box_gone": 3,
+      "delivery->cars_passed": 25,
+      "delivery->delivery": 112,
+      "delivery->visitor": 40,
+      "visitor->box_gone": 14,
+      "visitor->delivery": 19,
+      "visitor->visitor": 104
+    },
+    "days": 50,
+    "folded_visits": 510,
+    "noise": {
+      "drop_box_frame": 0.3,
+      "false_box_frame": 0.12,
+      "jitter": 0.04
+    },
+    "per_kind": {
+      "activity": {
+        "precision": 1.0,
+        "recall": 0.855
+      },
+      "box_gone": {
+        "precision": 0.6319,
+        "recall": 0.7188
+      },
+      "car_stopped": {
+        "precision": 1.0,
+        "recall": 0.8271
+      },
+      "cars_passed": {
+        "precision": 0.9372,
+        "recall": 0.8126
+      },
+      "delivery": {
+        "precision": 0.4828,
+        "recall": 0.6222
+      },
+      "visitor": {
+        "precision": 0.6265,
+        "recall": 0.7591
+      }
+    },
+    "scenarios": 1200,
+    "scenarios_per_day": 24,
+    "seed": 20261011
+  },
+  "moderate": {
+    "accuracy": 0.9383,
+    "alert_reduction": 0.6163,
+    "baseline_alerts": 1642,
+    "cards_shown": 630,
+    "confusion": {
+      "activity->activity": 129,
+      "activity->box_gone": 1,
+      "activity->delivery": 1,
+      "box_gone->box_gone": 153,
+      "box_gone->delivery": 4,
+      "box_gone->visitor": 3,
+      "car_stopped->box_gone": 1,
+      "car_stopped->car_stopped": 127,
+      "car_stopped->delivery": 5,
+      "cars_passed->box_gone": 4,
+      "cars_passed->cars_passed": 437,
+      "cars_passed->delivery": 18,
+      "delivery->box_gone": 1,
+      "delivery->cars_passed": 4,
+      "delivery->delivery": 154,
+      "delivery->visitor": 21,
+      "visitor->box_gone": 6,
+      "visitor->delivery": 5,
+      "visitor->visitor": 126
+    },
+    "days": 50,
+    "folded_visits": 570,
+    "noise": {
+      "drop_box_frame": 0.15,
+      "false_box_frame": 0.05,
+      "jitter": 0.02
+    },
+    "per_kind": {
+      "activity": {
+        "precision": 1.0,
+        "recall": 0.9847
+      },
+      "box_gone": {
+        "precision": 0.9217,
+        "recall": 0.9563
+      },
+      "car_stopped": {
+        "precision": 1.0,
+        "recall": 0.9549
+      },
+      "cars_passed": {
+        "precision": 0.9909,
+        "recall": 0.9521
+      },
+      "delivery": {
+        "precision": 0.8235,
+        "recall": 0.8556
+      },
+      "visitor": {
+        "precision": 0.84,
+        "recall": 0.9197
+      }
+    },
+    "scenarios": 1200,
+    "scenarios_per_day": 24,
+    "seed": 20261011
+  }
+}
