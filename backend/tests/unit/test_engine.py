@@ -153,6 +153,79 @@ def test_box_gone() -> None:
     assert res.state.boxes == ()
 
 
+def test_box_picked_up_within_one_event() -> None:
+    """Box in early snapshots, absent in the last, person present: gone now."""
+    box = bx(0.3, 0.3, 0.2, 0.2)
+    prior = PorchState(boxes=(TrackedBox(box=box, first_seen_ms=0, last_seen_ms=0),))
+    events = [ev("e1", 0, kind="on_demand")]
+    snaps = {
+        "e1": [
+            snap("e1", 1, det("box", box=box)),
+            snap("e1", 2, det("box", box=bx(0.31, 0.3, 0.2, 0.2))),
+            snap("e1", 3, det("person")),
+        ],
+    }
+    res = stitch_all(events, snaps, prior=prior)
+    visit = res.visits[0]
+    assert visit.kind == VisitKind.BOX_GONE
+    assert visit.hero_media_key == "e1-s3"
+    assert res.state.boxes == ()
+
+
+def test_box_dropped_in_final_frame_without_person_stays() -> None:
+    """One missing detection at the end and nobody there: keep the box."""
+    box = bx(0.3, 0.3, 0.2, 0.2)
+    prior = PorchState(boxes=(TrackedBox(box=box, first_seen_ms=0, last_seen_ms=0),))
+    events = [ev("e1", 0, kind="on_demand")]
+    snaps = {
+        "e1": [
+            snap("e1", 1, det("box", box=box)),
+            snap("e1", 2, det("box", box=bx(0.31, 0.3, 0.2, 0.2))),
+            snap("e1", 3),
+        ],
+    }
+    res = stitch_all(events, snaps, prior=prior)
+    visit = res.visits[0]
+    assert visit.kind != VisitKind.BOX_GONE
+    assert len(res.state.boxes) == 1
+    assert res.state.boxes[0].last_seen_ms == 2 * MS
+
+
+def test_box_absent_last_two_frames_no_person_is_gone() -> None:
+    """Absence confirmed over box_min_frames frames, no person needed."""
+    box = bx(0.3, 0.3, 0.2, 0.2)
+    prior = PorchState(boxes=(TrackedBox(box=box, first_seen_ms=0, last_seen_ms=0),))
+    events = [ev("e1", 0, kind="on_demand")]
+    snaps = {
+        "e1": [
+            snap("e1", 1, det("box", box=box)),
+            snap("e1", 2, det("vehicle")),
+            snap("e1", 3, det("vehicle")),
+        ],
+    }
+    res = stitch_all(events, snaps, prior=prior)
+    assert res.visits[0].kind == VisitKind.BOX_GONE
+    assert res.state.boxes == ()
+
+
+def test_box_occluded_mid_event_returns_stays() -> None:
+    """Box back in the final snapshot: mid-event occlusion is not a pickup."""
+    box = bx(0.3, 0.3, 0.2, 0.2)
+    prior = PorchState(boxes=(TrackedBox(box=box, first_seen_ms=0, last_seen_ms=0),))
+    events = [ev("e1", 0, kind="on_demand")]
+    snaps = {
+        "e1": [
+            snap("e1", 1, det("box", box=box)),
+            snap("e1", 2, det("person")),
+            snap("e1", 3, det("box", box=bx(0.31, 0.3, 0.2, 0.2))),
+        ],
+    }
+    res = stitch_all(events, snaps, prior=prior)
+    assert res.visits[0].kind != VisitKind.BOX_GONE
+    assert len(res.state.boxes) == 1
+    assert res.state.boxes[0].last_seen_ms == 3 * MS
+
+
 def test_car_stopped() -> None:
     events = [ev("e1", 0, dur_s=70, kind="on_demand")]
     snaps = {"e1": [snap("e1", 1, det("vehicle")), snap("e1", 61, det("vehicle"))]}

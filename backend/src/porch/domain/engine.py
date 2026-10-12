@@ -209,13 +209,39 @@ def _confirmed_new(
     ]
 
 
+def _box_seen_in(box: TrackedBox, snap: Snapshot, params: EngineParams) -> bool:
+    return any(
+        det.label == "box"
+        and det.confidence >= params.min_detection_confidence
+        and det.box is not None
+        and iou(box.box, det.box) >= params.box_match_iou
+        for det in snap.detections
+    )
+
+
 def _gone_boxes(
     before: tuple[TrackedBox, ...],
-    last_refs: list[_BoxRef],
-    match_iou: float,
+    snapshots: list[Snapshot],
+    has_person: bool,
+    params: EngineParams,
 ) -> list[TrackedBox]:
-    """Tracked boxes no longer visible in the final view; occlusion does not count."""
-    return [b for b in before if not any(iou(b.box, r.box) >= match_iou for r in last_refs)]
+    """A tracked box is gone when it is absent from the final snapshot AND a
+    person was seen in the group (someone took it) or the absence holds over
+    the last box_min_frames snapshots (one dropped detection cannot count)."""
+    if not snapshots:
+        return []
+    final = snapshots[-1]
+    tail = snapshots[-params.box_min_frames :]
+    gone = []
+    for box in before:
+        if _box_seen_in(box, final, params):
+            continue
+        if has_person or (
+            len(tail) == params.box_min_frames
+            and all(not _box_seen_in(box, snap, params) for snap in tail)
+        ):
+            gone.append(box)
+    return gone
 
 
 def _label_hit_ms(
@@ -326,8 +352,16 @@ def _process_group(
     clusters = _cluster_boxes(refs, match_iou)
     last_ev = _last_event_with_snapshots(group, ctx.snapshots)
     confirmed = _confirmed_new(clusters, state.boxes, last_ev, ctx.params)
-    last_refs = [r for r in refs if last_ev is not None and r.event_id == last_ev.id]
-    gone = _gone_boxes(state.boxes, last_refs, match_iou) if last_ev is not None else []
+    group_snaps = sorted(
+        (snap for event in group for snap in _snapshots_for(event, ctx.snapshots)),
+        key=lambda snap: snap.at_ms,
+    )
+    person_ms = _label_hit_ms(group, ctx.snapshots, "person", min_confidence)
+    gone = (
+        _gone_boxes(state.boxes, group_snaps, bool(person_ms), ctx.params)
+        if last_ev is not None
+        else []
+    )
     after = _update_state(state.boxes, gone, confirmed, refs, match_iou)
     vehicle_ms = _label_hit_ms(group, ctx.snapshots, "vehicle", min_confidence)
     vehicle_span_s = (
@@ -340,7 +374,7 @@ def _process_group(
             confirmed_new=tuple(confirmed),
             gone=tuple(gone),
             vehicle_span_s=vehicle_span_s,
-            has_person=bool(_label_hit_ms(group, ctx.snapshots, "person", min_confidence)),
+            has_person=bool(person_ms),
             has_ding=any(e.kind == "ding" for e in group),
             has_vehicle=bool(vehicle_ms),
         ),
