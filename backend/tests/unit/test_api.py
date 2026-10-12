@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -24,12 +25,13 @@ def mkctx(
     visits: list[Visit] | None = None,
     api: ApiSettings | None = None,
     now_ms: int = 0,
+    media: MediaStore | None = None,
 ) -> AppContext:
     settings = Settings(api=api or ApiSettings())
     return AppContext(
         settings=settings,
         repo=FakeRepo(visits),
-        media=FileMediaStore(tmp_path / "media", settings.api.public_base_url),
+        media=media or FileMediaStore(tmp_path / "media", settings.api.public_base_url),
         house=demo_house(),
         clock=FakeClock(now_ms),
     )
@@ -245,3 +247,44 @@ def test_speech_rejects_long_text(tmp_path: Path) -> None:
     client = client_for(mkctx(tmp_path))
     out = client.post("/v1/speech", json={"text": "x" * 301})
     assert out.status_code == 422
+
+
+class SignedMedia(FileMediaStore):
+    """S3-style store: url() hands out a signed link, not a local path."""
+
+    async def url(self, key: str, ttl_s: int) -> str:
+        return f"https://signed.example/{key}?sig=x{ttl_s}"
+
+
+def test_etag_rolls_with_the_media_url_ttl(tmp_path: Path) -> None:
+    ctx = mkctx(tmp_path, api=ApiSettings(media_url_ttl_s=60))
+    client = client_for(ctx)
+    first = client.get("/v1/houses/demo/visits")
+    assert first.status_code == 200
+    etag = first.headers["etag"]
+    again = client.get("/v1/houses/demo/visits", headers={"If-None-Match": etag})
+    assert again.status_code == 304
+    # Half the TTL later the bucket rolls even with the version unchanged.
+    clock = ctx.clock
+    assert isinstance(clock, FakeClock)
+    clock.current += 30_001
+    rolled = client.get("/v1/houses/demo/visits", headers={"If-None-Match": etag})
+    assert rolled.status_code == 200
+    assert rolled.headers["etag"] != etag
+
+
+def test_media_urls_come_from_the_store(tmp_path: Path) -> None:
+    visit = replace(
+        mkvisit("v1", 1_000, VisitKind.DELIVERY),
+        hero_media_key="hero.jpg",
+        clip_media_key="clip.mp4",
+    )
+    ctx = mkctx(tmp_path, visits=[visit], media=SignedMedia(tmp_path / "media", ""))
+    client = client_for(ctx)
+    card = client.get("/v1/houses/demo/visits").json()["cards"][0]
+    assert card["hero_url"] == "https://signed.example/hero.jpg?sig=x600"
+    assert card["clip_url"] == "https://signed.example/clip.mp4?sig=x600"
+    detail = client.get("/v1/visits/v1").json()
+    assert detail["hero_url"] == "https://signed.example/hero.jpg?sig=x600"
+    claimed = client.post("/v1/visits/v1/claim", json={"resident_id": "priya"}).json()
+    assert claimed["hero_url"] == "https://signed.example/hero.jpg?sig=x600"

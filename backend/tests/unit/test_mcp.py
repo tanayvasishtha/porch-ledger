@@ -15,8 +15,8 @@ from porch.api.app import create_app
 from porch.api.deps import AppContext
 from porch.config import ApiSettings
 from porch.domain import BoxFacts, NormBox, Visit, VisitKind
-from tests.helpers import mkvisit
-from tests.unit.test_api import mkctx
+from tests.helpers import FakeRepo, mkvisit
+from tests.unit.test_api import SignedMedia, mkctx
 
 TOOL_NAMES = {"anything_for_me", "todays_visits", "visit_detail", "claim_box", "house_info", "ask"}
 READ_TOOLS = {
@@ -163,5 +163,36 @@ def test_todays_visits_tool(tmp_path: Path) -> None:
                 cars = await client.call_tool("todays_visits", {"kind": "cars_passed"})
                 car_ids = [c["id"] for c in cars.structured_content["result"]]
                 assert car_ids == ["car1"]
+
+    asyncio.run(scenario())
+
+
+def test_signed_media_urls_reach_mcp_items(tmp_path: Path) -> None:
+    """anything_for_me items carry the store-signed URL, not /v1/media."""
+    visit = replace(
+        delivery_for("priya"),
+        hero_media_key="hero.jpg",
+        clip_media_key="clip.mp4",
+    )
+    ctx = seeded_ctx(tmp_path)
+    ctx = AppContext(
+        settings=ctx.settings,
+        repo=FakeRepo([visit]),
+        media=SignedMedia(tmp_path / "media", ""),
+        house=ctx.house,
+        clock=ctx.clock,
+    )
+    app = create_app(ctx)
+
+    async def scenario() -> None:
+        async with app.state.mcp.session_manager.run():
+            http, transport = mkclient(app)
+            async with http, Client(transport, mode="legacy") as client:
+                result = await client.call_tool("anything_for_me", {"resident_id": "priya"})
+                item = result.structured_content["items"][0]
+                assert item["hero_url"] == "https://signed.example/hero.jpg?sig=x600"
+                assert item["clip_url"] == "https://signed.example/clip.mp4?sig=x600"
+                detail = await client.call_tool("visit_detail", {"visit_id": visit.id})
+                assert detail.structured_content["hero_url"].startswith("https://signed.example/")
 
     asyncio.run(scenario())

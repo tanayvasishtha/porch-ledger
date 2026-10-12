@@ -1,5 +1,8 @@
 """Build API cards and details from domain visits; shared by REST and MCP."""
 
+import asyncio
+from collections.abc import Iterable, Mapping
+
 from porch.api.deps import AppContext
 from porch.api.schemas import BoxOut, ToolCallOut, VisitCard, VisitDetail
 from porch.domain import Visit, VisitKind, card_text
@@ -7,14 +10,20 @@ from porch.domain import Visit, VisitKind, card_text
 FOLDED_KINDS = {VisitKind.CARS_PASSED, VisitKind.ACTIVITY}
 
 
-def media_url(ctx: AppContext, key: str | None) -> str | None:
-    if key is None:
-        return None
-    base = ctx.settings.api.public_base_url.rstrip("/")
-    return f"{base}/v1/media/{key}"
+async def media_urls(ctx: AppContext, visits: Iterable[Visit]) -> dict[str, str]:
+    """One gather per response; the store decides relative vs pre-signed."""
+    keys = {
+        key
+        for visit in visits
+        for key in (visit.hero_media_key, visit.clip_media_key)
+        if key is not None
+    }
+    ttl_s = ctx.settings.api.media_url_ttl_s
+    urls = await asyncio.gather(*(ctx.media.url(key, ttl_s) for key in keys))
+    return dict(zip(keys, urls, strict=True))
 
 
-def to_card(visit: Visit, ctx: AppContext) -> VisitCard:
+def to_card(visit: Visit, ctx: AppContext, urls: Mapping[str, str]) -> VisitCard:
     text = card_text(visit, ctx.house)
     return VisitCard(
         id=visit.id,
@@ -25,8 +34,8 @@ def to_card(visit: Visit, ctx: AppContext) -> VisitCard:
         span=text.span,
         facts=text.facts,
         description=text.description,
-        hero_url=media_url(ctx, visit.hero_media_key),
-        clip_url=media_url(ctx, visit.clip_media_key),
+        hero_url=urls.get(visit.hero_media_key) if visit.hero_media_key else None,
+        clip_url=urls.get(visit.clip_media_key) if visit.clip_media_key else None,
         recipient_id=visit.box.recipient_id if visit.box else None,
         blocks_door=visit.box.blocks_door if visit.box else None,
         claimed_by=visit.claimed_by,
@@ -35,8 +44,8 @@ def to_card(visit: Visit, ctx: AppContext) -> VisitCard:
     )
 
 
-def to_detail(visit: Visit, ctx: AppContext) -> VisitDetail:
-    card = to_card(visit, ctx)
+def to_detail(visit: Visit, ctx: AppContext, urls: Mapping[str, str]) -> VisitDetail:
+    card = to_card(visit, ctx, urls)
     box = visit.box
     return VisitDetail(
         **card.model_dump(),

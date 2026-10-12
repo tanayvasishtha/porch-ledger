@@ -54,10 +54,11 @@ def build_mcp(ctx: AppContext) -> MCPServer:
         """Spoken summary and delivery cards for one resident, today."""
         resident = _resident(ctx, resident_id)
         visits = await _todays_visits(ctx)
+        urls = await cards.media_urls(ctx, visits)
         return Inbox(
             spoken=spoken_inbox(resident, visits, ctx.house),
             day_label=day_label(ctx.house, ctx.clock),
-            items=[cards.to_card(v, ctx) for v in visits if _is_mine(v, resident_id)],
+            items=[cards.to_card(v, ctx, urls) for v in visits if _is_mine(v, resident_id)],
         )
 
     @mcp.tool(annotations=_READ_ONLY)
@@ -68,7 +69,8 @@ def build_mcp(ctx: AppContext) -> MCPServer:
             visits = [v for v in visits if v.kind not in cards.FOLDED_KINDS]
         else:
             visits = [v for v in visits if v.kind == kind]
-        return [cards.to_card(v, ctx) for v in visits]
+        urls = await cards.media_urls(ctx, visits)
+        return [cards.to_card(v, ctx, urls) for v in visits]
 
     @mcp.tool(annotations=_READ_ONLY)
     async def visit_detail(visit_id: str) -> VisitDetail:
@@ -77,7 +79,7 @@ def build_mcp(ctx: AppContext) -> MCPServer:
         if visit is None:
             msg = f"unknown visit: {visit_id}"
             raise ToolError(msg)
-        return cards.to_detail(visit, ctx)
+        return cards.to_detail(visit, ctx, await cards.media_urls(ctx, [visit]))
 
     @mcp.tool(annotations=_READ_ONLY)
     async def ask(question: str, resident_id: str | None = None) -> AskAnswer:
@@ -110,6 +112,6 @@ def build_mcp(ctx: AppContext) -> MCPServer:
         if claimed is None:
             msg = f"unknown visit: {visit_id}"
             raise ToolError(msg)
-        return cards.to_card(claimed, ctx)
+        return cards.to_card(claimed, ctx, await cards.media_urls(ctx, [claimed]))
 
     return mcp

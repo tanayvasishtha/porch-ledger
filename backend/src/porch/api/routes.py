@@ -71,18 +71,22 @@ async def list_visits(
     day = day or today(house, ctx.clock)
     start_ms, end_ms = day_bounds(day, house)
     version = await ctx.repo.house_version(house_id)
-    etag = f'"v{version}-{day.isoformat()}"'
+    # Signed media URLs die with their TTL; the bucket forces a fresh body
+    # at least every half TTL even when the version is unchanged.
+    bucket = ctx.clock.now_ms() // max(1, ctx.settings.api.media_url_ttl_s * 500)
+    etag = f'"v{version}-{day.isoformat()}-{bucket}"'
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers={"ETag": etag})
     visits = await ctx.repo.visits_between(house_id, start_ms, end_ms)
     shown, folded = _split_folded(visits)
+    urls = await cards.media_urls(ctx, shown)
     response.headers["ETag"] = etag
     response.headers["Cache-Control"] = "no-cache"
     return VisitList(
         house_id=house_id,
         day=day.isoformat(),
         version=version,
-        cards=tuple(cards.to_card(v, ctx) for v in shown),
+        cards=tuple(cards.to_card(v, ctx, urls) for v in shown),
         folded=folded,
     )
 
@@ -92,7 +96,8 @@ async def visit_detail(visit_id: str, ctx: Annotated[AppContext, Depends(get_ctx
     visit = await ctx.repo.get_visit(visit_id)
     if visit is None:
         raise HTTPException(status_code=404, detail=f"unknown visit: {visit_id}")
-    return cards.to_detail(visit, ctx)
+    urls = await cards.media_urls(ctx, [visit])
+    return cards.to_detail(visit, ctx, urls)
 
 
 @router.post("/v1/visits/{visit_id}/claim", response_model=VisitCard)
@@ -106,7 +111,8 @@ async def claim_visit(
     claimed = await ctx.repo.claim(visit_id, body.resident_id)
     if claimed is None:
         raise HTTPException(status_code=404, detail=f"unknown visit: {visit_id}")
-    return cards.to_card(claimed, ctx)
+    urls = await cards.media_urls(ctx, [claimed])
+    return cards.to_card(claimed, ctx, urls)
 
 
 @router.post("/v1/speech", response_model=SpeechOut)
