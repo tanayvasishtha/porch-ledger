@@ -127,6 +127,60 @@ def test_snapshot_404_returns_none(tmp_path: Path) -> None:
     assert asyncio.run(client.snapshot(DEVICE, 1000)) is None
 
 
+def test_snapshot_422_undecryptable_returns_none(tmp_path: Path) -> None:
+    """Playground answers 422 GRECO_NO_VALID_KEY for a frame it cannot decrypt."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(422, json={"errors": [{"code": "GRECO_NO_VALID_KEY"}]})
+
+    client = _client(handler)
+    assert asyncio.run(client.snapshot(DEVICE, 1000)) is None
+
+
+def test_snapshot_presigned_422_returns_none(tmp_path: Path) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.method == "POST":
+            return httpx2.Response(
+                303, headers={"location": "https://download-x.amazonaws.com/get?sig=1"}
+            )
+        return httpx2.Response(422, json={"errors": [{"code": "GRECO_NO_VALID_KEY"}]})
+
+    client = _client(handler)
+    assert asyncio.run(client.snapshot(DEVICE, 1000)) is None
+
+
+def test_clip_303_drops_bearer_on_presigned_host(tmp_path: Path) -> None:
+    signed_headers: dict[str, str] = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.method == "POST":
+            return httpx2.Response(
+                303, headers={"location": "https://download-x.amazonaws.com/clip?sig=1"}
+            )
+        signed_headers.update(dict(request.headers))
+        return httpx2.Response(200, content=b"clip-mp4")
+
+    client = _client(handler)
+    assert asyncio.run(client.clip(DEVICE, 1000, 2000)) == b"clip-mp4"
+    assert "authorization" not in signed_headers
+
+
+def test_clip_422_undecryptable_returns_none(tmp_path: Path) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(422, json={"errors": [{"code": "GRECO_NO_VALID_KEY"}]})
+
+    client = _client(handler, media_retry_schedule_s=(0,))
+    assert asyncio.run(client.clip(DEVICE, 1000, 2000)) is None
+
+
+def test_clip_303_without_location_returns_none(tmp_path: Path) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(303)
+
+    client = _client(handler, media_retry_schedule_s=(0,))
+    assert asyncio.run(client.clip(DEVICE, 1000, 2000)) is None
+
+
 def test_clip_statuses_and_retry_schedule(tmp_path: Path) -> None:
     statuses = iter([200, 206, 416, 416, 200])
     seen: list[int] = []

@@ -1035,6 +1035,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "rapidfuzz" },
     { name = "strands-agents" },
+    { name = "truststore" },
     { name = "tzdata" },
     { name = "uvicorn" },
 ]
@@ -1061,6 +1062,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "rapidfuzz", specifier = ">=3.14.6" },
     { name = "strands-agents", specifier = "~=1.59" },
+    { name = "truststore", specifier = "==0.10.4" },
     { name = "tzdata", specifier = ">=2026.5" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]

@@ -107,24 +107,27 @@ def _record(args: argparse.Namespace) -> None:
     if token is None:
         print(f"missing access token: set {settings.ring.access_token_env}")
         raise SystemExit(2)
-    client = RingClient(settings, token)
+    asyncio.run(_record_session(RingClient(settings, token), settings, args))
+
+
+async def _record_session(client: RingClient, settings: Settings, args: argparse.Namespace) -> None:
+    # One event loop for the whole session: the HTTP client's pooled connections belong to it.
     device_id = args.device
     if device_id == "auto":
-        devices = asyncio.run(client.devices())
+        devices = await client.devices()
         if not devices:
             print("no accessible devices on this account")
             raise SystemExit(2)
         device_id = str(devices[0]["id"])
-    cassette = Cassette(Path(args.out) / "cassette", "live")
     recorder = TapeRecorder(
         client=client,
         settings=settings,
         device_id=device_id,
         repo=SqliteRepository(settings.api.sqlite_path),
-        cassette=cassette,
+        cassette=Cassette(Path(args.out) / "cassette", "live"),
         clock=SystemClock(),
     )
-    asyncio.run(recorder.record(args.minutes, Path(args.out)))
+    await recorder.record(args.minutes, Path(args.out))
 
 
 def main(argv: list[str] | None = None) -> None:

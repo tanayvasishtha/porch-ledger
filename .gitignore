@@ -28,6 +28,9 @@ dist/
 samconfig.toml
 .local/
 
+# Ring Playground recordings: sample footage stays local, not ours to ship.
+fixtures/tapes/playground-*/
+
 # OS junk
 Thumbs.db
 Desktop.ini

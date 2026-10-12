@@ -9,16 +9,21 @@ never part of an error message.
 from __future__ import annotations
 
 import asyncio
+import ssl
 from dataclasses import dataclass
 from typing import Any
 
 import httpx2
+import truststore
 
 from porch.config import Settings
 from porch.ports import PortError
 
 _SEE_OTHER = 303
 _NOT_FOUND = 404
+# Seen live on the Playground: 422 GRECO_NO_VALID_KEY when a frame cannot be decrypted.
+# It is per-frame, so the event keeps its other media.
+_NO_MEDIA = frozenset({_NOT_FOUND, 422})
 _OK = 200
 _PARTIAL = 206
 _TOO_MANY = 429
@@ -52,6 +57,8 @@ class RingClient:
         self._client = client or httpx2.AsyncClient(
             base_url=settings.ring.base_url,
             timeout=settings.ring.request_timeout_s,
+            # The OS trust store: certifi alone failed live on a pre-signed media host on Windows.
+            verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
         )
 
     async def user(self) -> dict[str, Any]:
@@ -98,24 +105,14 @@ class RingClient:
         response = await self._request(
             "snapshot", "POST", f"/v1/devices/{device_id}/media/image/download", json=body
         )
-        if response.status_code == _NOT_FOUND:
+        if response.status_code in _NO_MEDIA:
             return None
         if response.status_code != _SEE_OTHER:
             raise _status_error("snapshot", response)
-        location = response.headers.get("location")
-        if not location:
-            return None
-        try:
-            # No auth header here: the pre-signed host must never see the token.
-            image = await self._client.get(location)
-        except httpx2.HTTPError as exc:
-            raise _transport_error("snapshot", exc) from exc
-        if image.status_code != _OK:
-            raise _status_error("snapshot", image)
-        return image.content
+        return await self._presigned("snapshot", response)
 
     async def clip(self, device_id: str, start_ms: int, duration_ms: int) -> bytes | None:
-        """Video download; 416/425 retried on the documented schedule."""
+        """Video download, inline or via 303; 416/425 retried on the documented schedule."""
         body = {"timestamp": start_ms, "duration": duration_ms}
         attempts = len(self._retry_schedule) + 1
         for attempt in range(attempts):
@@ -124,11 +121,30 @@ class RingClient:
             )
             if response.status_code in (_OK, _PARTIAL):
                 return response.content
+            if response.status_code == _SEE_OTHER:
+                return await self._presigned("clip", response)
+            if response.status_code in _NO_MEDIA:
+                return None
             if response.status_code not in _RETRYABLE_MEDIA:
                 raise _status_error("clip", response)
             if attempt + 1 < attempts:
                 await self._sleep(self._retry_schedule[attempt])
         return None
+
+    async def _presigned(self, op: str, redirect: httpx2.Response) -> bytes | None:
+        location = redirect.headers.get("location")
+        if not location:
+            return None
+        try:
+            # No auth header here: the pre-signed host must never see the token.
+            media = await self._client.get(location)
+        except httpx2.HTTPError as exc:
+            raise _transport_error(op, exc) from exc
+        if media.status_code in _NO_MEDIA:
+            return None
+        if media.status_code not in (_OK, _PARTIAL):
+            raise _status_error(op, media)
+        return media.content
 
     async def _request(self, op: str, method: str, url: str, **kwargs: Any) -> httpx2.Response:
         try:
