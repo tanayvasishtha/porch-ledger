@@ -46,7 +46,7 @@ More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Run it
 
-Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), [just](https://just.systems/), JDK 17 and the Android SDK for the TV app, Node 22+ with pnpm for the iPad client. No AWS account or Ring token is needed for the demo.
+Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), [just](https://just.systems/), JDK 17 and the Android SDK for the TV app (with `ANDROID_HOME` set, or `sdk.dir` in `tv/local.properties`), Node 22+ with pnpm for the iPad client. No AWS account or Ring token is needed for the demo.
 
 ```
 just demo
@@ -54,8 +54,17 @@ just demo
 
 builds a synthetic household day through the full pipeline (stitching, label matching, door check, rain) with recorded and fake services, then serves the API and MCP server on `http://localhost:8000`. Every demo frame is stamped "SYNTHETIC TEST FRAME".
 
-- **TV app:** start an Android TV emulator (API 30), then `cd tv && ./gradlew installDebug`. The debug build talks to `http://10.0.2.2:8000`, which is the host machine from the emulator.
-- **iPad client:** `cd echo && pnpm install && pnpm dev`, and start the demo server with `PORCH_API__CORS_ORIGINS='["http://localhost:5173"]'` so the browser may call it.
+- **TV app:** start an Android TV emulator (API 30), then `cd tv && ./gradlew installDebug` (`.\gradlew.bat installDebug` in PowerShell). The debug build talks to `http://10.0.2.2:8000`, which is the host machine from the emulator.
+- **iPad client:** allow the browser origin when starting the demo server, then run the client:
+
+  ```
+  # bash or zsh
+  PORCH_API__CORS_ORIGINS='["http://localhost:5173"]' just demo
+  # PowerShell
+  $env:PORCH_API__CORS_ORIGINS='["http://localhost:5173"]'; just demo
+  ```
+
+  then `cd echo && pnpm install && pnpm dev` and open `http://localhost:5173`.
 - **All checks:** `just check` runs the prose check, backend lint, types and tests, the TV lint, unit and screenshot tests and release build, and the iPad client's checks.
 
 ## Limitations
