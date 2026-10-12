@@ -1,5 +1,61 @@
 # Architecture
 
+## System
+
+```mermaid
+flowchart LR
+  subgraph Ring["Ring Partner API"]
+    H[Event history]
+    M[Snapshots and clips]
+    W[Webhooks]
+  end
+  subgraph Worker["Worker Lambda (scheduled)"]
+    S[RingSource] --> F[RingMediaFetcher]
+    F --> P[Perception: Rekognition labels]
+    P --> E[VisitEngine, pure]
+    E --> C[PorchClerk agent, Strands + Bedrock]
+    C --> T1[read_label: Textract + resident match]
+    C --> T2[check_door: geometry]
+    C --> T3[rain_outlook: Open-Meteo]
+    C --> T4[describe_clip: Nova video]
+  end
+  subgraph Store["Storage"]
+    D[(DynamoDB, single table)]
+    B[(S3 media, private)]
+  end
+  subgraph Api["API Lambda (FastAPI on Lambda Web Adapter)"]
+    R[REST /v1 with ETag]
+    X[MCP /mcp, Streamable HTTP]
+    V[Speech: Polly]
+  end
+  H --> S
+  M --> F
+  W -. production path .-> Api
+  C --> D
+  F --> B
+  D --> R
+  D --> X
+  R --> TV[Fire TV app, Compose for TV]
+  X --> EC[Echo-style iPad client]
+  V --> EC
+```
+
+### Data flow for one delivery
+
+1. The worker polls Ring event history from a stored cursor. The Playground sends no webhooks, so polling is the sandbox path; `POST /ring/webhook` with HMAC verification is the production path.
+2. For each event it fetches three snapshots (start, middle, end of the event) and the clip, stores them in S3 under their SHA-256, and labels each snapshot with Rekognition. A media file is analysed once.
+3. The VisitEngine groups events that are less than two minutes apart, tracks boxes on the porch across snapshots by IoU, and classifies each closed group: delivery, box gone, car stopped, visitor, cars passed or activity. It is a pure function with property tests (idempotent, order-independent, incremental runs equal one batch run).
+4. PorchClerk, a Strands agent on Bedrock, decides which enrichment tools a visit needs. Each tool calls the same step functions as the deterministic path, refuses to run when its precondition is false, and is timed into the visit's trace. If the agent times out, exceeds its tool budget or errors, the deterministic path runs and the trace says so.
+5. The visit is saved with a version number; the house version feeds a strong ETag, so the TV app's five-second poll costs a 304 when nothing changed.
+6. The TV app shows the day as cards; the iPad client calls MCP tools such as `anything_for_me` and plays the answer through Polly.
+
+### Design choices
+
+- **Ports and adapters.** Every external system sits behind a Protocol in `porch/ports.py`. Each has a live adapter, a record/replay cassette and a test fake, so `just demo` and the whole test suite run with no network and no keys.
+- **Deterministic core, agent at the edge.** Stitching and the rules are plain code with tests. The agent only chooses among tools whose effects are already tested, which keeps its failure modes small.
+- **One settings object.** Every threshold, window, model id and limit is in `porch/config.py` and can be overridden with `PORCH_` environment variables.
+- **Shared contracts.** `contracts/openapi.json` and `contracts/mcp-tools.json` are generated from the code and checked in CI. The TV app's tests read the same golden JSON files the backend writes, so the Python and Kotlin sides cannot drift apart silently.
+
 ## Dependencies and why
 
 - pydantic: typed models at every external boundary (settings, API payloads, tool IO).
