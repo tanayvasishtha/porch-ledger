@@ -173,13 +173,16 @@ private fun MediaPanel(
         if (playing && detail.clipUrl != null) {
             clipPlayer(detail.clipUrl, muted, Modifier.fillMaxSize())
         } else {
+            // Outlines are drawn only once the frame is up, so they never float over an empty panel.
+            var loaded by remember(detail.heroUrl) { mutableStateOf(false) }
             AsyncImage(
                 model = detail.heroUrl,
                 contentDescription = detail.title,
                 contentScale = ContentScale.Fit,
+                onSuccess = { loaded = true },
                 modifier = Modifier.fillMaxSize(),
             )
-            OverlayCanvas(detail)
+            if (loaded) OverlayCanvas(detail)
         }
     }
 }

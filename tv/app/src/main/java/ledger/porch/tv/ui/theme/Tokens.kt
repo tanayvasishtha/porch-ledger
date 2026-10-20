@@ -12,6 +12,9 @@ object TvColors {
 
     // Secondary text on Paper; Muted is tuned for the dark background.
     val InkMuted = Color(0xFF6B6357)
+
+    // Image placeholder on Paper, so a loading photo reads as a frame, not a hole.
+    val PaperShade = Color(0xFFE2DACB)
     val Amber = Color(0xFFE8A33D)
     val Sage = Color(0xFF8DB38B)
     val Terracotta = Color(0xFFD9734E)

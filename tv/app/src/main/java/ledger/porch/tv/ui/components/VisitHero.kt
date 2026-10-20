@@ -88,7 +88,7 @@ fun VisitHero(
                     Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(TvSpacing.S))
-                        .background(TvColors.Ink),
+                        .background(TvColors.PaperShade),
             )
         }
         Column(

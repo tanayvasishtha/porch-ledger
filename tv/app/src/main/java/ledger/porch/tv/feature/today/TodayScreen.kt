@@ -17,11 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.tv.material3.Text
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
 import ledger.porch.tv.data.dto.Folded
 import ledger.porch.tv.data.dto.VisitCard
 import ledger.porch.tv.ui.components.DayHeader
@@ -117,6 +120,14 @@ internal fun ColumnScope.TodayContent(
         return
     }
     val selected = cards.firstOrNull { it.id == selectedId } ?: cards.first()
+    val context = LocalContext.current
+    LaunchedEffect(cards.map { it.heroUrl }) {
+        // Warm the image cache so moving along the rail never shows an empty frame.
+        val loader = SingletonImageLoader.get(context)
+        cards.mapNotNull { it.heroUrl }.forEach { url ->
+            loader.enqueue(ImageRequest.Builder(context).data(url).build())
+        }
+    }
     val heroFocus = remember { FocusRequester() }
     val railFocus = remember { FocusRequester() }
     VisitHero(
