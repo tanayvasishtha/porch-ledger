@@ -25,7 +25,6 @@ class AppContext:
     # Where verified webhook events go; None means POST /ring/webhook is off.
     sink: EventSink | None = None
     # Household question agent; None makes the ask tool return its fallback.
-    # Household question agent; None makes the ask tool return its fallback.
     ask: HouseholdAsk | None = None
     # Speech synthesis; None means /v1/speech answers 404 (local demo).
     speech: Speech | None = None

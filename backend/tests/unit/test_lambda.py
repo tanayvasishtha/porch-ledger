@@ -13,7 +13,8 @@ from types_boto3_ssm import SSMClient
 
 from porch.adapters.aws.clients import AwsClients, build_clients
 from porch.aws_lambda import SsmSecrets, _ingest_once, build_cloud_context
-from porch.config import AwsSettings, Settings
+from porch.config import AgentSettings, AwsSettings, Settings
+from porch.pipeline.ask import HouseholdAsk
 from tests.helpers import DEMO_FIXTURE, FakeClock, FakeDynamoClient
 from tests.unit.test_aws_adapters import _client
 
@@ -143,6 +144,16 @@ def test_house_from_s3_roundtrip(tmp_path: Path) -> None:
     ssm = FakeSsm({"/porch/house/demo/key_sha256": "x"})
     ctx = build_cloud_context(settings, mkclients(tmp_path, ssm, s3))
     assert ctx.house.residents
+
+
+def test_cloud_context_wires_ask_only_when_agent_enabled(tmp_path: Path) -> None:
+    s3 = FakeS3({("bkt", "k.json"): DEMO_FIXTURE.read_bytes()})
+    api = Settings().api.model_copy(update={"house_file": Path("s3://bkt/k.json")})
+    ssm = FakeSsm({"/porch/house/demo/key_sha256": "x"})
+    off = Settings().model_copy(update={"api": api})
+    on = off.model_copy(update={"agent": AgentSettings(enabled=True)})
+    assert build_cloud_context(off, mkclients(tmp_path, ssm, s3)).ask is None
+    assert isinstance(build_cloud_context(on, mkclients(tmp_path, ssm, s3)).ask, HouseholdAsk)
 
 
 def test_build_clients_uses_bedrock_region(monkeypatch: pytest.MonkeyPatch) -> None:

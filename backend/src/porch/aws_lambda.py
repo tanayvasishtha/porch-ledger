@@ -35,6 +35,7 @@ from porch.clock import SystemClock
 from porch.config import Settings
 from porch.domain import House
 from porch.pipeline.agent import PorchClerk
+from porch.pipeline.ask import HouseholdAsk
 from porch.pipeline.ingest import IngestConfig, IngestPorts, IngestService
 from porch.ports import Clock
 
@@ -107,14 +108,24 @@ def build_cloud_context(settings: Settings, clients: AwsClients | None = None) -
     if secret is not None:
         os.environ.setdefault(settings.ring.webhook_secret_env, secret)
     media = S3MediaStore(clients.s3, settings, _LIVE_CASSETTE)
+    repo = DynamoRepository(clients.dynamodb, settings.aws.table_name)
     return AppContext(
         settings=settings,
-        repo=DynamoRepository(clients.dynamodb, settings.aws.table_name),
+        repo=repo,
         media=media,
         house=house,
         clock=clock,
+        ask=(
+            HouseholdAsk(_agent_model(settings), repo, house, settings, clock)
+            if settings.agent.enabled
+            else None
+        ),
         speech=PollySpeech(clients.polly, settings, _LIVE_CASSETTE, media),
     )
+
+
+def _agent_model(settings: Settings) -> BedrockModel:
+    return BedrockModel(model_id=settings.agent.model_id, region_name=settings.aws.bedrock_region)
 
 
 async def _ingest_once(
@@ -144,10 +155,7 @@ async def _ingest_once(
         device_id = str(devices[0]["id"])
     clerk = (
         PorchClerk(
-            model=BedrockModel(
-                model_id=settings.agent.model_id,
-                region_name=settings.aws.bedrock_region,
-            ),
+            model=_agent_model(settings),
             ports=enrich,
             house=house,
             settings=settings,
