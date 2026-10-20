@@ -2,7 +2,14 @@
 
 Porch Ledger turns Ring doorbell events into visits you can read on your TV: deliveries, cars that stopped, and whose box is at the door.
 
-Built for the Ring and Fire TV tracks of Build, Ship, Shape: Amazon Developer Hackathon.
+Built for the Ring and Fire TV tracks of Build, Ship, Shape: Amazon Developer Hackathon, with entries in the AWS Builder and Open Source mini challenges.
+
+| Track | What in this repo answers it |
+|---|---|
+| Ring | `backend/src/porch/adapters/ring/` calls the Ring Partner API at runtime (devices, event history, snapshots, clips) against the Developer Playground. The use is package management for shared homes, one of the rules' examples of a creative non-security use. Events drive app behaviour: they become visits, cards and spoken answers. |
+| Fire TV | `tv/` is a Kotlin and Compose for TV app for Fire OS, driven by the D-pad, shown running on the Android TV emulator in the video. |
+| AWS Builder | `infra/template.yaml` deploys Lambda, HTTP API, DynamoDB, S3, SSM, EventBridge Scheduler and CloudFront. Two Strands agents run on Amazon Bedrock (Nova Lite): PorchClerk picks the enrichment steps per visit, and HouseholdAsk answers free questions over MCP. Rekognition and Polly handle vision and speech. |
+| Open Source | [AmazonAppDev/ring-api-helloworld pull request 42](https://github.com/AmazonAppDev/ring-api-helloworld/pull/42): a tested Python media download example covering the 303, 206, 416/425, 429 and 422 cases we hit live. |
 
 ## The problem
 
@@ -30,6 +37,14 @@ From `backend/src/porch/evals/stitching.py` on 50 seeded synthetic days (1,200 s
 
 These scenarios are written by us to test the engine's logic under controlled noise. They are not a field accuracy figure. Under harsh noise, delivery precision drops to 48% because a box detected late is credited to a later visit; that limitation is listed below.
 
+### Live runs against the Ring Playground
+
+- **October 12, local recorder** (`python -m porch record`): 3 events, 8 snapshots and 3 clips downloaded through the Partner API. The run exposed the clip 303 redirect, a per-frame 422 and a Windows TLS issue; all three are fixed and tested.
+- **October 20, deployed worker on AWS:** the Lambda pulled 4 new events and 11 snapshots, ran Rekognition on every frame (it found the package as `Package` and `Box`), stored media in S3 and visits in DynamoDB, and Nova described the vehicle clip as "A car arrives, a person gets out, and the car leaves."
+- **HouseholdAsk on Bedrock,** called over the deployed MCP endpoint, answered "Did anyone come to the door today?" in 4.6 seconds and cited the visit it read.
+
+Ring's sample footage stays out of this repository because it is not ours to redistribute. Cards on the TV say where their footage came from: "From the Ring doorbell", "Synthetic test day", or an own-footage badge.
+
 ## How it works
 
 ```
@@ -40,7 +55,8 @@ Ring event history -> snapshots + clip -> Rekognition labels -> VisitEngine -> P
 - **PorchClerk** is a Strands agent on Amazon Bedrock that decides which tools a visit needs: read the label (Rekognition DetectText), check the door (geometry), check the rain (Open-Meteo), describe the clip (Nova). Every tool is timed into a trace shown on the TV under "How this card was made". If the agent fails, the same steps run deterministically.
 - **Fire TV app** (`tv/`): Kotlin and Compose for TV, 3 MB release build, polls with ETags so an unchanged day costs a 304.
 - **Echo-style client** (`echo/`): a Preact web app on an iPad that is a real MCP client (protocol 2025-11-25) and speaks answers with Amazon Polly.
-- **AWS** (`infra/template.yaml`): API and worker Lambdas, HTTP API, DynamoDB, private S3, EventBridge Scheduler, SSM for secrets, CloudFront for the iPad app, a $5 budget alarm, least-privilege IAM per function.
+- **HouseholdAsk** (`backend/src/porch/pipeline/ask.py`) is a second Strands agent behind the MCP `ask` tool. It reads saved visits through two read-only tools and may only cite visit ids those tools returned.
+- **AWS** (`infra/template.yaml`): API and worker Lambdas, HTTP API, DynamoDB, private S3, EventBridge Scheduler, SSM for secrets, CloudFront for the iPad app, a $5 budget alarm, least-privilege IAM per function. The stack runs in ap-southeast-2 (the account's home region) and calls Bedrock in us-east-1; [friction log entries 16 to 18](docs/FRICTION_LOG.md) explain why.
 
 More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -65,18 +81,23 @@ builds a synthetic household day through the full pipeline (stitching, label mat
   ```
 
   then `cd echo && pnpm install && pnpm dev` and open `http://localhost:5173`.
+- **Deploy to AWS** (needs credentials; copy `infra/samconfig.toml.example` to `infra/samconfig.toml` first): `just deploy`, then `just house-key` (prints the house key once and stores only its hash), `just ring-token` (stores a Playground token in SSM without echoing it) and `just echo-deploy`. Open the iPad client once as `<EchoUrl>/#key=<house key>`; the key moves to the browser's storage and never ships in the public bundle. Build the TV app against the stack with `./gradlew installDebug -PporchApiBaseUrl=<ApiUrl> -PporchHouseKey=<house key>`.
 - **All checks:** `just check` runs the prose check, backend lint, types and tests, the TV lint, unit and screenshot tests and release build, and the iPad client's checks.
 
 ## Limitations
 
 - **Late box detection is credited to the wrong visit.** If the box is missed in the delivery's own snapshots and first seen during a later visit, that later visit becomes the delivery.
 - **Simulated Ring events carry no classification.** The Playground reports every scene as a live view session, so detection is ours (Rekognition), and Ring's own person and vehicle signal is only used on real devices.
+- **Playground scenes come from different cameras.** Clicking scenes less than two minutes apart merges them into one visit, and the box seems to leave when the next camera's scene starts. We stage scenes with a gap.
+- **No field accuracy number for label reading and the door check yet.** The evaluation script (`backend/src/porch/evals/footage.py`) is written and tested; it needs our own labelled photos.
 - **TAKE and end-to-end encryption** can limit what media a partner app may fetch. See [docs/PRIVACY.md](docs/PRIVACY.md).
 - **Alexa+ itself is not connected;** its developer tools are in private preview. The iPad client is a simulated Alexa+ screen using the same MCP server.
 
 ## What broke and how we fixed it
 
 The first run of the stitching evaluation scored 76% on clean data. Every box picked up during a single event was missed, because the engine checked whether the box appeared anywhere in the last event instead of in its final frame. The stale box then caused false "box gone" cards later in the day. The rule now looks at the final snapshot and requires either a person in the visit or absence across the last two frames; clean accuracy went to 100%.
+
+The first deploy found four bugs that no local test could: the API's start script picked a Windows-only `uvicorn` shim, a stub package the adapters import at runtime was a dev dependency, DynamoDB rejected a two-sided condition on the sort key (our fake client accepted it), and S3 returned 403 instead of 404 for missing media without `ListBucket`. Each fix has a test or a template rule now.
 
 ## Repository
 

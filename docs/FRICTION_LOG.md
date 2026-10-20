@@ -102,3 +102,69 @@ Each entry: the task, what we did, what we expected, what happened, how bad it w
 - **Severity:** minor.
 - **Workaround:** declared the integration, route and permission resources explicitly.
 - **Suggestion:** document the pattern in the SAM HTTP API guide.
+
+## Ring Playground, live runs (October 12 and 20)
+
+### 12. Clip download answers 303, the docs show 200 or 206
+- **Task:** download the clip for a Playground event.
+- **Steps:** POST `/v1/devices/{id}/media/video/download` with a timestamp and duration.
+- **Expected:** the Media Clips section shows the MP4 returned directly as 200 or 206; only Image Snapshots describes a 303 to a pre-signed URL.
+- **Actual:** the clip POST returned 303 with a pre-signed `Location`, so a client written from the clips section failed on its first live call.
+- **Severity:** major (no clip at all until fixed).
+- **Workaround:** one redirect step shared by clips and snapshots, which drops the bearer token before calling the pre-signed host. We also contributed it to the official sample repo (AmazonAppDev/ring-api-helloworld pull request 42).
+- **Suggestion:** document the 303 flow in the Media Clips section, or say which environments use it.
+
+### 13. Undocumented 422 GRECO_NO_VALID_KEY on single frames
+- **Task:** fetch three snapshots across one Playground event.
+- **Actual:** one frame's pre-signed GET returned 422 `GRECO_NO_VALID_KEY: No valid Greco key available for decryption`, while the other frames downloaded. The code is not in the Error Handling table.
+- **Severity:** major (it stopped our recorder until handled).
+- **Workaround:** treat 422 like 404 for that one frame and keep the event's other media.
+- **Suggestion:** list the code in Error Handling and say whether a retry can succeed.
+
+### 14. One Playground device shows three different cameras
+- **Task:** stage a delivery: a van arrives, then a box appears.
+- **Steps:** clicked Vehicle, then Package, then Motion within about two minutes.
+- **Expected:** one doorbell's point of view, like a real device.
+- **Actual:** the three scenes are recordings from three unrelated cameras (a parking lot, a driveway, snowy steps, a bird feeder) under one device id. A visit engine that tracks objects across frames sees the box vanish when the next scene starts, so a quick sequence of clicks reads as one visit where the box was taken again.
+- **Severity:** minor for us once understood; it cost a token window to diagnose.
+- **Workaround:** stage scenes with a quiet gap of at least two minutes between them.
+- **Suggestion:** note in the Playground that each scene is a separate camera, or add a scripted scenario (arrival, drop-off, departure) from one viewpoint.
+
+### 15. Pre-signed media host failed TLS verification with certifi on Windows
+- **Task:** GET a pre-signed snapshot URL from Python with httpx's default certificate bundle.
+- **Actual:** `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate` on one media host, after other downloads had worked in the same session.
+- **Severity:** minor.
+- **Workaround:** verify against the OS trust store with `truststore`.
+- **Suggestion:** name the issuing CA for the media hosts in the docs.
+
+## AWS, first deploy (October 20)
+
+### 16. Free plan accounts deny services outside one home region, and the error does not say so
+- **Task:** call Rekognition, Lambda and DynamoDB from a new account with an IAM user that has AdministratorAccess.
+- **Steps:** ran the calls in us-east-1, the region the CLI and most guides default to.
+- **Expected:** either success or an error naming the cause.
+- **Actual:** "explicit deny in a service control policy" for almost every service. The account is a Free plan project under AWS-managed SCPs that allow most services only in the home region chosen at sign-up (ap-southeast-2 for us). The console offered an account upgrade; nothing pointed to the region.
+- **Severity:** major (half a day, and a near decision to give up on AWS).
+- **Workaround:** probed every region with a read-only call, found the home region, and moved the stack there.
+- **Suggestion:** include the home region in the AccessDenied message for Free plan projects, and show it on the account page.
+
+### 17. Textract is not part of the Free plan, with no notice until runtime
+- **Task:** read package labels with `DetectDocumentText`.
+- **Actual:** explicit deny in the home region too; the Free plan SCP allow list does not include Textract.
+- **Severity:** major (forced an adapter swap two days before the deadline).
+- **Workaround:** Rekognition `DetectText`, which the plan allows and which read the label text on the real Ring frames.
+- **Suggestion:** mark services outside the Free plan on their console landing pages.
+
+### 18. Bedrock in the home region waits on account verification while us-east-1 works
+- **Task:** call Nova Lite from the stack's region.
+- **Actual:** ap-southeast-2 answered "Your account is currently being verified" for the APAC inference profile; the US profile in us-east-1 worked from the same credentials.
+- **Severity:** minor.
+- **Workaround:** a `bedrock_region` setting pins Converse to us-east-1, with IAM scoped to the US inference profile.
+- **Suggestion:** apply verification per account, not per region, or say which regions are still pending.
+
+### 19. S3 answers 403 for a missing key without ListBucket
+- **Task:** check whether a media object exists before uploading it again.
+- **Actual:** `HeadObject` on a missing key returned 403, which our store read as a permission failure and surfaced as a 500 from the speech route.
+- **Severity:** minor.
+- **Workaround:** grant `s3:ListBucket` on the bucket so a missing key returns 404.
+- **Suggestion:** put this rule in the HeadObject error section, where people look when they hit it.
