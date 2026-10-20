@@ -75,6 +75,17 @@ export const isResidentList = (value: unknown): value is Resident[] =>
   Array.isArray(value) &&
   value.every((item) => isRecord(item) && isString(item.id) && isString(item.display_name));
 
+export interface AskAnswer {
+  answer: string;
+  visit_ids: string[];
+}
+
+export const isAskAnswer = (value: unknown): value is AskAnswer =>
+  isRecord(value) &&
+  isString(value.answer) &&
+  Array.isArray(value.visit_ids) &&
+  value.visit_ids.every(isString);
+
 export const isHouseInfo = (value: unknown): value is HouseInfo =>
   isRecord(value) &&
   isString(value.name) &&

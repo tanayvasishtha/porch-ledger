@@ -3,8 +3,8 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 
-import { houseKeyFromEnv, mcpUrlFromEnv, type PorchMcp } from './mcp';
-import type { HouseInfo, Inbox, VisitCard } from './types';
+import { houseKey, mcpUrlFromEnv, type PorchMcp } from './mcp';
+import type { AskAnswer, HouseInfo, Inbox, VisitCard } from './types';
 
 type Status = 'loading' | 'ready' | 'offline' | 'error';
 
@@ -15,12 +15,20 @@ interface Selected {
 
 const MUTED_KEY = 'porch-echo-muted';
 
+// Free questions go to the ask tool, a Bedrock agent that reads saved visits.
+export const QUESTIONS = [
+  'Did anyone stop by today?',
+  'Is there a box for me?',
+  'Did a car stop at the house?',
+];
+
 export function App({ client }: { client: PorchMcp | null }) {
   const [house, setHouse] = useState<HouseInfo | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [selected, setSelected] = useState<Selected | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [reply, setReply] = useState<AskAnswer | null>(null);
   const [muted, setMuted] = useState(() => localStorage.getItem(MUTED_KEY) === '1');
   const mutedRef = useRef(muted);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -34,7 +42,7 @@ export function App({ client }: { client: PorchMcp | null }) {
     let spoke = false;
     if (client !== null) {
       try {
-        const key = houseKeyFromEnv();
+        const key = houseKey();
         const res = await fetch(`${client.serverOrigin}/v1/speech`, {
           method: 'POST',
           headers: {
@@ -84,8 +92,24 @@ export function App({ client }: { client: PorchMcp | null }) {
     try {
       const inbox = await client.anythingForMe(residentId);
       setSelected({ residentId, inbox });
+      setReply(null);
       setMessage('');
       void speak(inbox.spoken);
+    } catch {
+      setMessage('The porch server did not answer. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askQuestion = async (question: string, residentId: string) => {
+    if (client === null || busy) return;
+    setBusy(true);
+    try {
+      const answer = await client.askQuestion(question, residentId);
+      setReply(answer);
+      setMessage('');
+      void speak(answer.answer);
     } catch {
       setMessage('The porch server did not answer. Try again.');
     } finally {
@@ -115,7 +139,12 @@ export function App({ client }: { client: PorchMcp | null }) {
   };
 
   const answer =
-    message !== '' ? message : busy ? 'Asking the porch...' : (selected?.inbox.spoken ?? '');
+    message !== ''
+      ? message
+      : busy
+        ? 'Asking the porch...'
+        : (reply?.answer ?? selected?.inbox.spoken ?? '');
+  const cited = new Set(reply?.visit_ids ?? []);
 
   return (
     <main class="screen">
@@ -178,9 +207,24 @@ export function App({ client }: { client: PorchMcp | null }) {
           </button>
         )}
       </section>
+      {selected !== null && (
+        <nav class="questions" aria-label="Ask the porch">
+          {QUESTIONS.map((question) => (
+            <button
+              key={question}
+              class="question-chip"
+              type="button"
+              disabled={busy}
+              onClick={() => askQuestion(question, selected.residentId)}
+            >
+              {question}
+            </button>
+          ))}
+        </nav>
+      )}
       <section class="cards" aria-label="Visits for the selected resident">
         {selected?.inbox.items.map((card) => (
-          <article key={card.id} class="visit-card">
+          <article key={card.id} class="visit-card" data-cited={cited.has(card.id)}>
             {card.hero_url !== null && <img src={resolveMedia(card.hero_url)} alt={card.title} />}
             <div class="card-body">
               <h2 class="card-title">{card.title}</h2>

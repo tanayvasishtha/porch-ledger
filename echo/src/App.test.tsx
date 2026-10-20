@@ -101,6 +101,20 @@ describe('App', () => {
     expect(await screen.findByText('You have a box from UPS.')).toBeTruthy();
   });
 
+  it('asks a suggested question through the ask tool and marks cited visits', async () => {
+    const askQuestion = vi.fn(async () => ({
+      answer: 'A box came for you at 11:05 am.',
+      visit_ids: [CARD.id],
+    }));
+    render(<App client={fakeClient({ askQuestion })} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Priya' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Is there a box for me?' }));
+    expect(await screen.findByText('A box came for you at 11:05 am.')).toBeTruthy();
+    expect(askQuestion).toHaveBeenCalledWith('Is there a box for me?', 'priya');
+    const card = screen.getByAltText('Box for Priya').closest('article');
+    expect(card?.getAttribute('data-cited')).toBe('true');
+  });
+
   it('renders the offline state without a client', () => {
     render(<App client={null} />);
     expect(screen.getByText(/not reachable/)).toBeTruthy();

@@ -123,6 +123,40 @@ body {
   color: var(--terracotta);
 }
 
+.questions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Quieter than resident chips: these ask, residents choose who is asking. */
+.question-chip {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.question-chip:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.question-chip:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+}
+
+/* The visits the clerk cited for its last answer. */
+.visit-card[data-cited='true'] {
+  box-shadow: inset 4px 0 0 var(--amber);
+}
+
 .cards {
   display: flex;
   flex-direction: column;

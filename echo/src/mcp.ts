@@ -6,8 +6,10 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
 import {
+  type AskAnswer,
   type HouseInfo,
   type Inbox,
+  isAskAnswer,
   isHouseInfo,
   isInbox,
   isVisitCard,
@@ -71,6 +73,16 @@ export class PorchMcp {
     throw new ToolShapeError('anything_for_me');
   }
 
+  async askQuestion(question: string, residentId: string): Promise<AskAnswer> {
+    const result = await this.client.callTool({
+      name: 'ask',
+      arguments: { question, resident_id: residentId },
+    });
+    if (result.isError) throw new ToolShapeError('ask');
+    if (isAskAnswer(result.structuredContent)) return result.structuredContent;
+    throw new ToolShapeError('ask');
+  }
+
   async claimBox(visitId: string, residentId: string): Promise<VisitCard> {
     const result = await this.client.callTool({
       name: 'claim_box',
@@ -86,5 +98,20 @@ export class PorchMcp {
 export const mcpUrlFromEnv = (): string =>
   (import.meta.env.VITE_MCP_URL as string | undefined) ?? DEFAULT_URL;
 
-export const houseKeyFromEnv = (): string | undefined =>
-  (import.meta.env.VITE_HOUSE_KEY as string | undefined) ?? undefined;
+const HOUSE_KEY_STORAGE = 'porch-house-key';
+
+// The deployed bundle is public, so the key never ships in it: open the page
+// once as /#key=<house key>, it moves to localStorage and leaves the URL.
+export const houseKey = (): string | undefined => {
+  const fromHash = new URLSearchParams(window.location.hash.slice(1)).get('key');
+  if (fromHash) {
+    localStorage.setItem(HOUSE_KEY_STORAGE, fromHash);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return fromHash;
+  }
+  return (
+    localStorage.getItem(HOUSE_KEY_STORAGE) ??
+    (import.meta.env.VITE_HOUSE_KEY as string | undefined) ??
+    undefined
+  );
+};
