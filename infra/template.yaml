@@ -41,6 +41,8 @@ Globals:
         PORCH_AWS__MEDIA_BUCKET: !Ref MediaBucket
         PORCH_AWS__REGION: !Ref AWS::Region
         PORCH_RING__DEVICE_ID: !Ref RingDeviceId
+        # Door area drawn on the Ring Playground's package camera.
+        PORCH_API__HOUSE_FILE: fixtures/house.playground.json
         PORCH_AGENT__ENABLED: "true"
         # Under the HTTP API's 30 s integration limit, so ask can fall back in time.
         PORCH_AGENT__TIMEOUT_S: "25"
