@@ -81,7 +81,9 @@ def test_visits_between_queries_sk_window() -> None:
             {"Items": []},
             {
                 "TableName": "porch",
-                "KeyConditionExpression": "#pk = :pk AND #sk >= :lo AND #sk < :hi",
+                # DynamoDB allows one condition on the sort key; the live API
+                # rejected the two-sided form with a ValidationException.
+                "KeyConditionExpression": "#pk = :pk AND #sk BETWEEN :lo AND :hi",
                 "ExpressionAttributeNames": {"#pk": "PK", "#sk": "SK"},
                 "ExpressionAttributeValues": {
                     ":pk": {"S": "HOUSE#h1"},
