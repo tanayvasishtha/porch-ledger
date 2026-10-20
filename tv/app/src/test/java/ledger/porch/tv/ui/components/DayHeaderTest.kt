@@ -30,6 +30,14 @@ class DayHeaderTest {
     }
 
     @Test
+    fun `only a delivery still at the door can be claimed`() {
+        val forPriya = card("delivery").copy(recipientId = "priya")
+        assertEquals(true, claimable(forPriya))
+        assertEquals(false, claimable(forPriya.copy(claimedBy = "priya")))
+        assertEquals(false, claimable(card("box_gone").copy(recipientId = "priya")))
+    }
+
+    @Test
     fun `source label names ring and synthetic footage only`() {
         assertEquals("From the Ring doorbell", sourceLabel("ring"))
         assertEquals("Synthetic test day", sourceLabel("replay"))

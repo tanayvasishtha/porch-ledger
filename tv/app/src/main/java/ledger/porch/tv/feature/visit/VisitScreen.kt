@@ -243,7 +243,7 @@ private fun DetailActions(
     onPlay: () -> Unit,
     onToggleSound: () -> Unit,
 ) {
-    val claimable = detail.recipientId != null && detail.claimedBy == null
+    val claimable = detail.kind == "delivery" && detail.recipientId != null && detail.claimedBy == null
     val showPlay = detail.clipUrl != null && !playing
     Row(horizontalArrangement = Arrangement.spacedBy(TvSpacing.M)) {
         if (claimable) {

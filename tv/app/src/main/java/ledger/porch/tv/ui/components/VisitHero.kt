@@ -1,5 +1,6 @@
 package ledger.porch.tv.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,11 @@ import ledger.porch.tv.ui.theme.TvFocus
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
 
-internal fun hasActions(card: VisitCard): Boolean = (card.recipientId != null && card.claimedBy == null) || card.clipUrl != null
+// Only a box still at the door can be claimed; a "box gone" card names the
+// recipient but has nothing left to take in.
+internal fun claimable(card: VisitCard): Boolean = card.kind == "delivery" && card.recipientId != null && card.claimedBy == null
+
+internal fun hasActions(card: VisitCard): Boolean = claimable(card) || card.clipUrl != null
 
 // Judges and residents both need to see whose footage a card came from;
 // own footage keeps its badge next to the title instead.
@@ -64,6 +69,10 @@ fun VisitHero(
             onClick = onOpenDetails,
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(TvSpacing.S)),
             scale = ClickableSurfaceDefaults.scale(focusedScale = TvFocus.SCALE),
+            border =
+                ClickableSurfaceDefaults.border(
+                    focusedBorder = Border(BorderStroke(TvFocus.border, TvColors.Amber)),
+                ),
             modifier =
                 Modifier
                     .weight(0.58f)
@@ -149,9 +158,8 @@ private fun HeroActions(
     onClaim: () -> Unit,
     onPlayClip: () -> Unit,
 ) {
-    val claimable = card.recipientId != null && card.claimedBy == null
     Row(horizontalArrangement = Arrangement.spacedBy(TvSpacing.M)) {
-        if (claimable) {
+        if (claimable(card)) {
             TvAction(label = "It's mine", enabled = true, onClick = onClaim)
         }
         if (card.clipUrl != null) {

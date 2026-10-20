@@ -240,15 +240,17 @@ export function App({ client }: { client: PorchMcp | null }) {
                   </span>
                 ))}
               </div>
-              {card.recipient_id !== null && card.claimed_by === null && (
-                <button
-                  class="action"
-                  type="button"
-                  onClick={() => claim(card, selected.residentId)}
-                >
-                  It's mine
-                </button>
-              )}
+              {card.kind === 'delivery' &&
+                card.recipient_id !== null &&
+                card.claimed_by === null && (
+                  <button
+                    class="action"
+                    type="button"
+                    onClick={() => claim(card, selected.residentId)}
+                  >
+                    It's mine
+                  </button>
+                )}
             </div>
           </article>
         ))}

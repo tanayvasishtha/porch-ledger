@@ -115,6 +115,15 @@ describe('App', () => {
     expect(card?.getAttribute('data-cited')).toBe('true');
   });
 
+  it('offers no claim on a box that is already gone', async () => {
+    const gone = { ...CARD, kind: 'box_gone', title: 'Box gone' };
+    const client = fakeClient({ anythingForMe: vi.fn(async () => ({ ...INBOX, items: [gone] })) });
+    render(<App client={client} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Priya' }));
+    expect(await screen.findByText('Box gone')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: "It's mine" })).toBeNull();
+  });
+
   it('renders the offline state without a client', () => {
     render(<App client={null} />);
     expect(screen.getByText(/not reachable/)).toBeTruthy();
