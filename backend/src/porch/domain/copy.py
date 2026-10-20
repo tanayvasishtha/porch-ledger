@@ -91,9 +91,10 @@ def _facts(visit: Visit, house: House, stopped_min: int) -> list[str]:
     facts: list[str] = []
     if (box := visit.box) is not None:
         facts.extend(_recipient_fact(box, house))
+        # A claim says whose box it is; the box may still be outside, so the
+        # door and rain warnings stay.
         if visit.claimed_by is not None:
-            # Once someone has taken the box in, door and rain warnings no longer apply.
-            return [*facts, f"Taken in by {_resident_name(house, visit.claimed_by)}"]
+            facts.append(f"Claimed by {_resident_name(house, visit.claimed_by)}")
         if box.blocks_door is True:
             facts.append("Leaning on the door")
     if stopped_min:
