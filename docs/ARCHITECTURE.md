@@ -68,7 +68,7 @@ flowchart LR
 - httpx (dev): Starlette TestClient transport for API tests.
 - pillow: image crop for delivery label OCR in enrich, and synthetic tape frames in tests/demo.
 - boto3: S3 media, Rekognition labels and DetectText OCR, Polly speech, Bedrock Nova clip descriptions; each call runs in asyncio.to_thread under a per-service semaphore.
-- types-boto3 (dev): client and type stubs so the AWS adapters stay under mypy strict.
+- types-boto3: client and TypedDict stubs so the AWS adapters stay under mypy strict; a runtime dependency because the cassette TypeAdapters validate against those TypedDicts at import.
 - httpx2: async HTTP for Open-Meteo; the same fork the MCP SDK already vendors, so one HTTP client total.
 - truststore: verifies TLS against the OS trust store; certifi alone failed on a Ring pre-signed media host on Windows during the live Playground run.
 - hatchling: PEP 517 build backend for the src-layout `porch` package.

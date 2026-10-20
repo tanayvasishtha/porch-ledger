@@ -198,7 +198,7 @@ class DynamoRepository:
             items: list[dict[str, Any]] = []
             kwargs: dict[str, Any] = {
                 "TableName": self._table,
-                "KeyConditionExpression": "#pk = :pk AND #sk >= :lo AND #sk < :hi",
+                "KeyConditionExpression": "#pk = :pk AND #sk BETWEEN :lo AND :hi",
                 "ExpressionAttributeNames": {"#pk": "PK", "#sk": "SK"},
                 "ExpressionAttributeValues": {
                     ":pk": {"S": _visit_pk(house_id)},

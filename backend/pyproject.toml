@@ -14,6 +14,9 @@ dependencies = [
     "strands-agents~=1.59",
     "truststore==0.10.4",
     "tzdata>=2026.5",
+    # Imported at runtime by the AWS adapters (client annotations and
+    # TypedDict validation in cassette TypeAdapters), not just for mypy.
+    "types-boto3[bedrock-runtime,dynamodb,polly,rekognition,s3,ssm]>=1.43.111",
     "uvicorn>=0.54.0",
 ]
 
@@ -52,5 +55,4 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
-    "types-boto3[bedrock-runtime,dynamodb,polly,rekognition,s3,ssm]>=1.43.111",
 ]

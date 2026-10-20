@@ -76,7 +76,9 @@ def copy_app() -> None:
     shutil.copytree(BACKEND / "src" / "porch", TARGET / "porch", dirs_exist_ok=True)
     (TARGET / "fixtures").mkdir(exist_ok=True)
     shutil.copy(ROOT / "fixtures" / "house.demo.json", TARGET / "fixtures")
-    shutil.copy(ROOT / "infra" / "run.sh", TARGET / "run.sh")
+    # Windows checkouts hand run.sh CRLF endings; Lambda needs the shebang clean.
+    run_sh = (ROOT / "infra" / "run.sh").read_bytes().replace(b"\x0d\x0a", b"\x0a")
+    (TARGET / "run.sh").write_bytes(run_sh)
 
 
 def prune() -> None:

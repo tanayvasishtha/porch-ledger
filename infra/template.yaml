@@ -102,6 +102,12 @@ Resources:
                 - s3:PutObject
                 - s3:DeleteObject
               Resource: !Sub "${MediaBucket.Arn}/*"
+            - Sid: MediaList
+              Effect: Allow
+              # Without ListBucket, HeadObject on a missing key answers 403
+              # instead of 404 and the media store cannot tell empty apart.
+              Action: s3:ListBucket
+              Resource: !GetAtt MediaBucket.Arn
             - Sid: Speech
               Effect: Allow
               # SynthesizeSpeech does not support resource scoping.
@@ -176,6 +182,12 @@ Resources:
                 - s3:PutObject
                 - s3:DeleteObject
               Resource: !Sub "${MediaBucket.Arn}/*"
+            - Sid: MediaList
+              Effect: Allow
+              # Without ListBucket, HeadObject on a missing key answers 403
+              # instead of 404 and the media store cannot tell empty apart.
+              Action: s3:ListBucket
+              Resource: !GetAtt MediaBucket.Arn
             - Sid: Vision
               Effect: Allow
               # These vision/speech APIs do not support resource scoping.
