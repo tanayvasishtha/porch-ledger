@@ -9,4 +9,6 @@ capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
 s3_prefix = "porch-ledger"
+# After the first deploy, set AllowedOrigin to the EchoUrl output and deploy
+# again: the MCP transport only accepts browser origins listed exactly.
 parameter_overrides = "HouseId=demo RingDeviceId=\"\" ScheduleEnabled=false AlertEmail=\"you@example.com\" AllowedOrigin=\"*\""
