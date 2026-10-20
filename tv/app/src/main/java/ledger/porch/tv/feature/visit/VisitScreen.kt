@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ import ledger.porch.tv.data.dto.ToolCallOut
 import ledger.porch.tv.data.dto.VisitDetail
 import ledger.porch.tv.ui.components.FactChip
 import ledger.porch.tv.ui.components.TvAction
+import ledger.porch.tv.ui.components.sourceLabel
 import ledger.porch.tv.ui.theme.TvColors
 import ledger.porch.tv.ui.theme.TvSpacing
 import ledger.porch.tv.ui.theme.TvType
@@ -113,13 +115,19 @@ internal fun VisitDetailContent(
         modifier = Modifier.fillMaxSize(),
         horizontalArrangement = Arrangement.spacedBy(TvSpacing.L),
     ) {
-        MediaPanel(
-            detail = detail,
-            playing = playing,
-            muted = muted,
-            clipPlayer = clipPlayer,
+        Column(
             modifier = Modifier.weight(MEDIA_WEIGHT),
-        )
+            verticalArrangement = Arrangement.spacedBy(TvSpacing.L),
+        ) {
+            MediaPanel(
+                detail = detail,
+                playing = playing,
+                muted = muted,
+                clipPlayer = clipPlayer,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TraceSection(detail.trace)
+        }
         Column(
             modifier =
                 Modifier
@@ -129,6 +137,9 @@ internal fun VisitDetailContent(
         ) {
             Text(text = detail.title, style = TvType.Display, color = TvColors.Paper)
             Text(text = detail.span, style = TvType.Span, color = TvColors.Muted)
+            sourceLabel(detail.provenance)?.let { label ->
+                Text(text = label, style = TvType.Caption, color = TvColors.Muted)
+            }
             DetailBody(
                 detail,
                 playing,
@@ -220,7 +231,6 @@ private fun DetailBody(
     }
     Text(text = detail.description, style = TvType.Body, color = TvColors.Paper)
     DetailActions(detail, playing, muted, actionFocus, onClaim, onPlay, onToggleSound)
-    TraceSection(detail.trace)
 }
 
 @Composable
@@ -275,6 +285,11 @@ private fun TraceSection(trace: List<ToolCallOut>) {
         Text(
             text = "How this card was made",
             style = TvType.Body,
+            color = TvColors.Paper,
+        )
+        Text(
+            text = "The steps the porch clerk chose for this visit, in order.",
+            style = TvType.Caption,
             color = TvColors.Muted,
         )
         trace.forEach { call -> TraceRow(call) }

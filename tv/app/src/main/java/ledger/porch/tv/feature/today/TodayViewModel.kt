@@ -35,7 +35,7 @@ class TodayViewModel(
                     val cached = repo.cachedOrNull()
                     _state.value =
                         if (cached != null) {
-                            TodayUiState.Offline(cached.cards, cached.folded)
+                            TodayUiState.Offline(cached.cards, cached.folded, cached.day)
                         } else {
                             TodayUiState.Error(
                                 error.message ?: "Could not reach the porch ledger.",
@@ -102,6 +102,7 @@ class TodayViewModel(
                 cards = list.cards,
                 selectedId = selected,
                 folded = list.folded,
+                day = list.day,
             )
     }
 }

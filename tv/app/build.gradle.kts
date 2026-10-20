@@ -19,8 +19,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000\"")
-        buildConfigField("String", "HOUSE_KEY", "\"\"")
+        // Defaults hit the local demo; point a build at the cloud stack with
+        // -PporchApiBaseUrl=... -PporchHouseKey=... (never committed).
+        val apiBaseUrl = providers.gradleProperty("porchApiBaseUrl").getOrElse("http://10.0.2.2:8000")
+        val houseKey = providers.gradleProperty("porchHouseKey").getOrElse("")
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "HOUSE_KEY", "\"$houseKey\"")
     }
 
     buildFeatures {

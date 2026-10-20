@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +33,15 @@ import ledger.porch.tv.ui.theme.TvType
 
 internal fun hasActions(card: VisitCard): Boolean = (card.recipientId != null && card.claimedBy == null) || card.clipUrl != null
 
+// Judges and residents both need to see whose footage a card came from;
+// own footage keeps its badge next to the title instead.
+internal fun sourceLabel(provenance: String): String? =
+    when (provenance) {
+        "ring" -> "From the Ring doorbell"
+        "replay" -> "Synthetic test day"
+        else -> null
+    }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VisitHero(
@@ -50,7 +57,7 @@ fun VisitHero(
             modifier
                 .clip(RoundedCornerShape(TvSpacing.M))
                 .background(TvColors.Paper)
-                .padding(TvSpacing.L),
+                .padding(TvSpacing.M),
         horizontalArrangement = Arrangement.spacedBy(TvSpacing.L),
     ) {
         Surface(
@@ -76,11 +83,8 @@ fun VisitHero(
             )
         }
         Column(
-            modifier =
-                Modifier
-                    .weight(0.42f)
-                    .fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(TvSpacing.M),
+            modifier = Modifier.weight(0.42f),
+            verticalArrangement = Arrangement.spacedBy(TvSpacing.S),
         ) {
             HeroBody(
                 card = card,
@@ -108,7 +112,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
             OwnFootageBadge()
         }
     }
-    Text(text = card.span, style = TvType.Span, color = TvColors.Ink)
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(TvSpacing.M),
+    ) {
+        Text(text = card.span, style = TvType.Span, color = TvColors.Ink)
+        sourceLabel(card.provenance)?.let { label ->
+            Text(text = label, style = TvType.Caption, color = TvColors.InkMuted)
+        }
+    }
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(TvSpacing.S),
         verticalArrangement = Arrangement.spacedBy(TvSpacing.S),
@@ -119,10 +131,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.HeroBody(
         text = card.description,
         style = TvType.Body,
         color = TvColors.Ink,
-        maxLines = 1,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
-    Spacer(modifier = Modifier.weight(1f))
     if (hasActions(card)) {
         HeroActions(
             card = card,

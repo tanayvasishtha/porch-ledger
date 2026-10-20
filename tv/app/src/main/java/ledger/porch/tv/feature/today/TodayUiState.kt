@@ -10,11 +10,13 @@ sealed interface TodayUiState {
         val cards: List<VisitCard>,
         val selectedId: String?,
         val folded: Folded,
+        val day: String = "",
     ) : TodayUiState
 
     data class Offline(
         val cards: List<VisitCard>,
         val folded: Folded,
+        val day: String = "",
     ) : TodayUiState
 
     data class Error(

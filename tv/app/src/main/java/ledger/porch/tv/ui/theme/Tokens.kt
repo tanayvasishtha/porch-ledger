@@ -9,6 +9,9 @@ object TvColors {
     val Paper = Color(0xFFF3EDE2)
     val Ink = Color(0xFF1D1A16)
     val Muted = Color(0xFFA79E90)
+
+    // Secondary text on Paper; Muted is tuned for the dark background.
+    val InkMuted = Color(0xFF6B6357)
     val Amber = Color(0xFFE8A33D)
     val Sage = Color(0xFF8DB38B)
     val Terracotta = Color(0xFFD9734E)

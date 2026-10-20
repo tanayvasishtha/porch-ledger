@@ -24,6 +24,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.tv.material3.Text
 import ledger.porch.tv.data.dto.Folded
 import ledger.porch.tv.data.dto.VisitCard
+import ledger.porch.tv.ui.components.DayHeader
 import ledger.porch.tv.ui.components.FoldedLine
 import ledger.porch.tv.ui.components.TimeRail
 import ledger.porch.tv.ui.components.VisitHero
@@ -62,6 +63,7 @@ fun TodayScreen(
                     folded = current.folded,
                     selectedId = current.selectedId,
                     offline = false,
+                    day = current.day,
                     onSelect = viewModel::select,
                     onClaim = { card -> viewModel.claimSelected(card) },
                     onOpenDetail = onOpenDetail,
@@ -73,6 +75,7 @@ fun TodayScreen(
                     folded = current.folded,
                     selectedId = null,
                     offline = true,
+                    day = current.day,
                     onSelect = viewModel::select,
                     onClaim = { card -> viewModel.claimSelected(card) },
                     onOpenDetail = onOpenDetail,
@@ -92,7 +95,15 @@ internal fun ColumnScope.TodayContent(
     onClaim: (VisitCard) -> Unit,
     onOpenDetail: (String, Boolean) -> Unit,
     focusRail: Boolean = false,
+    day: String = "",
 ) {
+    if (day.isNotEmpty()) {
+        DayHeader(
+            day = day,
+            cards = cards,
+            modifier = Modifier.padding(horizontal = TvSpacing.OverscanH),
+        )
+    }
     if (offline) {
         Text(
             text = "Showing the last update. Reconnecting.",
@@ -116,7 +127,6 @@ internal fun ColumnScope.TodayContent(
         onPlayClip = { onOpenDetail(selected.id, true) },
         modifier =
             Modifier
-                .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = TvSpacing.OverscanH)
                 .focusProperties { down = railFocus },
