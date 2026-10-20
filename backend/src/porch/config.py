@@ -64,7 +64,7 @@ class VisionSettings(BaseModel):
     recipient_min_score: int = Field(default=85, ge=0, le=100)
     recipient_margin: int = Field(default=10, ge=0, le=100)
     door_block_overlap: float = Field(default=0.25, ge=0.0, le=1.0)
-    # Confidence values below are Rekognition/Textract percentages, 0-100.
+    # Confidence values below are Rekognition percentages, 0-100.
     ocr_min_confidence: float = Field(default=60.0, ge=0.0, le=100.0)
     rekognition_min_confidence: float = Field(default=60.0, ge=0.0, le=100.0)
     rekognition_max_labels: int = Field(default=25, gt=0)
@@ -96,13 +96,15 @@ class AwsSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     region: str = "us-east-1"
+    # Bedrock in the account's home region is still under account
+    # verification, while us-east-1 already serves Nova.
+    bedrock_region: str = "us-east-1"
     media_bucket: str = ""
     polly_voice: str = "Danielle"
     polly_engine: Literal["neural", "generative", "standard"] = "neural"
     table_name: str = "porch"
     s3_concurrency: int = Field(default=4, gt=0)
     rekognition_concurrency: int = Field(default=4, gt=0)
-    textract_concurrency: int = Field(default=2, gt=0)
     bedrock_concurrency: int = Field(default=2, gt=0)
     polly_concurrency: int = Field(default=2, gt=0)
 

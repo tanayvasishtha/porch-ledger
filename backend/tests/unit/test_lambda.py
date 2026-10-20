@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Any, cast
 
 import httpx2
+import pytest
 from botocore.exceptions import ClientError
 from types_boto3_s3 import S3Client
 from types_boto3_ssm import SSMClient
 
-from porch.adapters.aws.clients import AwsClients
+from porch.adapters.aws.clients import AwsClients, build_clients
 from porch.aws_lambda import SsmSecrets, _ingest_once, build_cloud_context
-from porch.config import Settings
+from porch.config import AwsSettings, Settings
 from tests.helpers import DEMO_FIXTURE, FakeClock, FakeDynamoClient
 from tests.unit.test_aws_adapters import _client
 
@@ -51,7 +52,6 @@ def mkclients(tmp_path: Path, ssm: FakeSsm, s3: FakeS3 | None = None) -> AwsClie
         dynamodb=cast(Any, FakeDynamoClient()),
         ssm=cast(SSMClient, ssm),
         rekognition=cast(Any, _client("rekognition")),
-        textract=cast(Any, _client("textract")),
         polly=cast(Any, _client("polly")),
         bedrock=cast(Any, _client("bedrock-runtime")),
     )
@@ -143,3 +143,11 @@ def test_house_from_s3_roundtrip(tmp_path: Path) -> None:
     ssm = FakeSsm({"/porch/house/demo/key_sha256": "x"})
     ctx = build_cloud_context(settings, mkclients(tmp_path, ssm, s3))
     assert ctx.house.residents
+
+
+def test_build_clients_uses_bedrock_region(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = Settings(aws=AwsSettings(region="ap-southeast-2", bedrock_region="us-east-1"))
+    clients = build_clients(settings)
+    assert clients.bedrock.meta.region_name == "us-east-1"
+    assert clients.rekognition.meta.region_name == "ap-southeast-2"
+    assert clients.s3.meta.region_name == "ap-southeast-2"

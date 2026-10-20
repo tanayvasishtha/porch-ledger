@@ -1049,7 +1049,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-    { name = "types-boto3", extra = ["bedrock-runtime", "dynamodb", "polly", "rekognition", "s3", "ssm", "textract"] },
+    { name = "types-boto3", extra = ["bedrock-runtime", "dynamodb", "polly", "rekognition", "s3", "ssm"] },
 ]
 
 [package.metadata]
@@ -1076,7 +1076,7 @@ dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.17.0" },
-    { name = "types-boto3", extras = ["bedrock-runtime", "dynamodb", "polly", "rekognition", "s3", "ssm", "textract"], specifier = ">=1.43.111" },
+    { name = "types-boto3", extras = ["bedrock-runtime", "dynamodb", "polly", "rekognition", "s3", "ssm"], specifier = ">=1.43.111" },
 ]
 
 [[package]]
@@ -1729,9 +1729,6 @@ s3 = [
 ssm = [
     { name = "types-boto3-ssm" },
 ]
-textract = [
-    { name = "types-boto3-textract" },
-]
 
 [[package]]
 name = "types-boto3-bedrock-runtime"
@@ -1785,15 +1782,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f6/79/ce0a5c1e63a5e45d4bbe0b8339281dd46ba5df69a547b3c164a56a0d4b92/types_boto3_ssm-1.43.104.tar.gz", hash = "sha256:0ffc6d32ce491ef18d0dc2d95514015ee71aef9c51c73cee1930a0c9e0cfce5b", size = 98031, upload-time = "2026-09-28T20:23:49.06Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/07/1119c02f66d487bee5379cb6ca390b2156931e3d07521a475d9524e07007/types_boto3_ssm-1.43.104-py3-none-any.whl", hash = "sha256:1a98230c4e9604dc286b10f28e9043e0404a03f5da2b4e33b1d96d97c42b40e1", size = 99668, upload-time = "2026-09-28T20:23:46.678Z" },
-]
-
-[[package]]
-name = "types-boto3-textract"
-version = "1.43.69"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1a/60/7f96e99a896d575e7fbf96bfef5139b8154da8577721bfdb218d7e0bf8fc/types_boto3_textract-1.43.69.tar.gz", hash = "sha256:3f65672cff359a01014df47b1f07ba7a3c252701d712493a17ce251f09c23c41", size = 21737, upload-time = "2026-08-11T20:20:22.667Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/d8/2843e5f97e26f3604c4d00c827ced4ff351f07296a565a61bb860244bfaf/types_boto3_textract-1.43.69-py3-none-any.whl", hash = "sha256:9b7c22d9edf26f1f7fc44a9c81e65ae41f6ac7c70f2dfd5814d4681a8d264023", size = 30090, upload-time = "2026-08-11T20:20:21.303Z" },
 ]
 
 [[package]]

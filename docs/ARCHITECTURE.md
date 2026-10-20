@@ -14,7 +14,7 @@ flowchart LR
     F --> P[Perception: Rekognition labels]
     P --> E[VisitEngine, pure]
     E --> C[PorchClerk agent, Strands + Bedrock]
-    C --> T1[read_label: Textract + resident match]
+    C --> T1[read_label: Rekognition DetectText + resident match]
     C --> T2[check_door: geometry]
     C --> T3[rain_outlook: Open-Meteo]
     C --> T4[describe_clip: Nova video]
@@ -67,7 +67,7 @@ flowchart LR
 - mcp: Model Context Protocol Python SDK v2 for the household tools over Streamable HTTP.
 - httpx (dev): Starlette TestClient transport for API tests.
 - pillow: image crop for delivery label OCR in enrich, and synthetic tape frames in tests/demo.
-- boto3: S3 media, Rekognition labels, Textract OCR, Polly speech, Bedrock Nova clip descriptions; each call runs in asyncio.to_thread under a per-service semaphore.
+- boto3: S3 media, Rekognition labels and DetectText OCR, Polly speech, Bedrock Nova clip descriptions; each call runs in asyncio.to_thread under a per-service semaphore.
 - types-boto3 (dev): client and type stubs so the AWS adapters stay under mypy strict.
 - httpx2: async HTTP for Open-Meteo; the same fork the MCP SDK already vendors, so one HTTP client total.
 - truststore: verifies TLS against the OS trust store; certifi alone failed on a Ring pre-signed media host on Windows during the live Playground run.

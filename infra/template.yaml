@@ -102,6 +102,11 @@ Resources:
                 - s3:PutObject
                 - s3:DeleteObject
               Resource: !Sub "${MediaBucket.Arn}/*"
+            - Sid: Speech
+              Effect: Allow
+              # SynthesizeSpeech does not support resource scoping.
+              Action: polly:SynthesizeSpeech
+              Resource: "*"
             - Sid: Secrets
               Effect: Allow
               Action: ssm:GetParameter
@@ -173,19 +178,21 @@ Resources:
               Resource: !Sub "${MediaBucket.Arn}/*"
             - Sid: Vision
               Effect: Allow
+              # These vision/speech APIs do not support resource scoping.
               Action:
                 - rekognition:DetectLabels
-                - textract:DetectDocumentText
+                - rekognition:DetectText
                 - polly:SynthesizeSpeech
               Resource: "*"
             - Sid: NovaModel
               Effect: Allow
               Action:
                 - bedrock:InvokeModel
-                - bedrock:Converse
+                - bedrock:InvokeModelWithResponseStream
               Resource:
-                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/us.amazon.nova-lite-v1:0"
-                - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.amazon.nova-lite-v1:0"
+                # Converse runs in us-east-1; the US profile routes across regions.
+                - !Sub "arn:aws:bedrock:us-east-1:${AWS::AccountId}:inference-profile/us.amazon.nova-lite-v1:0"
+                - "arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0"
             - Sid: Secrets
               Effect: Allow
               Action: ssm:GetParameter

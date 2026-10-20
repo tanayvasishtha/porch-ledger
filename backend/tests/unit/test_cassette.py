@@ -43,10 +43,10 @@ def test_record_writes_under_adapter_and_version(tmp_path: Path) -> None:
         async def fn() -> list[int]:
             return []
 
-        await Cassette(tmp_path, "record").call("textract", 2, REQUEST, fn, LIST_INT)
+        await Cassette(tmp_path, "record").call("rekognition_text", 2, REQUEST, fn, LIST_INT)
 
     asyncio.run(run())
-    files = list((tmp_path / "textract" / "v2").glob("*.json"))
+    files = list((tmp_path / "rekognition_text" / "v2").glob("*.json"))
     assert len(files) == 1
 
 

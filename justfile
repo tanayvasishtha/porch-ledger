@@ -3,6 +3,9 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Machine JDK for the tv recipe; a real JAVA_HOME always wins.
 export JAVA_HOME := env_var_or_default("JAVA_HOME", "C:/Users/Dell/AppData/Local/Programs/Microsoft/jdk-17.0.10.7-hotspot")
 
+# Stack region for the deploy recipes; must match samconfig.toml.
+export AWS_DEFAULT_REGION := env_var_or_default("PORCH_REGION", "ap-southeast-2")
+
 check-prose:
     uv run scripts/check_prose.py
 

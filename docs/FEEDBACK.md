@@ -80,7 +80,7 @@ Feedback on every Amazon tool, API and SDK we used, written while building. Each
 1. Preserve file modes when SAM packages on Windows, or warn when a handler script is not executable.
 2. A documented pattern for giving a function its own HTTP API URL.
 
-## AWS: AI services (Rekognition, Textract, Bedrock Nova, Polly)
+## AWS: AI services (Rekognition, Bedrock Nova, Polly)
 
 **Worked well**
 - Rekognition's `DetectLabels` returns instance boxes for vehicles, people and boxes, which is all our engine needs.

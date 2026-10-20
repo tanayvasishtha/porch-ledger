@@ -1,6 +1,7 @@
 """Nova describer and Open-Meteo weather tests: Stubber + MockTransport."""
 
 import asyncio
+import io
 import json
 import re
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Any, Literal
 import boto3
 import httpx2
 import pytest
+from botocore.response import StreamingBody
 from botocore.stub import Stubber
 
 from porch.adapters.aws import (
@@ -17,6 +19,7 @@ from porch.adapters.aws import (
     S3MediaStore,
     build_live_ports,
 )
+from porch.adapters.aws.nova import _PROMPT
 from porch.adapters.cassette import Cassette
 from porch.adapters.openmeteo import OpenMeteoWeather
 from porch.config import AwsSettings, Settings, WeatherSettings
@@ -42,11 +45,37 @@ def _settings(**vision: Any) -> Settings:
 
 def _describer(
     tmp_path: Path, mode: Literal["live", "record", "replay"] = "live"
-) -> tuple[NovaDescriber, Any]:
+) -> tuple[NovaDescriber, Any, Any]:
     client = _client("bedrock-runtime")
+    s3 = _client("s3")
     settings = _settings()
-    media = S3MediaStore(_client("s3"), settings, Cassette(tmp_path / "s3", "live"))
-    return NovaDescriber(client, media, settings, Cassette(tmp_path, mode)), client
+    media = S3MediaStore(s3, settings, Cassette(tmp_path / "s3", "live"))
+    return NovaDescriber(client, media, settings, Cassette(tmp_path, mode)), client, s3
+
+
+def _converse_params(data: bytes) -> dict[str, Any]:
+    settings = _settings()
+    return {
+        "modelId": settings.vision.describe_model_id,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "video": {
+                            "format": "mp4",
+                            "source": {"bytes": data},
+                        }
+                    },
+                    {"text": _PROMPT},
+                ],
+            }
+        ],
+        "inferenceConfig": {
+            "maxTokens": settings.vision.describe_max_tokens,
+            "temperature": 0.0,
+        },
+    }
 
 
 def _converse_response(text: str) -> dict[str, Any]:
@@ -58,61 +87,80 @@ def _converse_response(text: str) -> dict[str, Any]:
     }
 
 
-def _describe(describer: NovaDescriber, client: Any, text: str) -> str | None:
-    with Stubber(client) as stubber:
-        stubber.add_response("converse", _converse_response(text))
+def _describe(describer: NovaDescriber, client: Any, s3: Any, text: str) -> str | None:
+    with Stubber(s3) as s3_stubber, Stubber(client) as stubber:
+        s3_stubber.add_response(
+            "get_object",
+            {"Body": StreamingBody(io.BytesIO(b"clip-bytes"), len("clip-bytes"))},
+            {"Bucket": "porch-media", "Key": "a1b2.mp4"},
+        )
+        stubber.add_response(
+            "converse",
+            _converse_response(text),
+            _converse_params(b"clip-bytes"),
+        )
         return asyncio.run(describer.describe("a1b2.mp4"))
 
 
 def test_nova_valid_summary(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
+    describer, client, s3 = _describer(tmp_path)
     body = '{"summary": "A van stops and a box is left.", "uncertain": false}'
-    out = _describe(describer, client, body)
+    out = _describe(describer, client, s3, body)
     assert out == "A van stops and a box is left."
 
 
 def test_nova_fenced_json(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
+    describer, client, s3 = _describer(tmp_path)
     fenced = '```json\n{"summary": "A person arrives.", "uncertain": false}\n```'
-    assert _describe(describer, client, fenced) == "A person arrives."
+    assert _describe(describer, client, s3, fenced) == "A person arrives."
 
 
 def test_nova_uncertain_returns_none(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
+    describer, client, s3 = _describer(tmp_path)
     body = '{"summary": "A person arrives.", "uncertain": true}'
-    assert _describe(describer, client, body) is None
+    assert _describe(describer, client, s3, body) is None
 
 
 def test_nova_too_long_returns_none(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
+    describer, client, s3 = _describer(tmp_path)
     long_summary = "x" * 200
     body = json.dumps({"summary": long_summary, "uncertain": False})
-    assert _describe(describer, client, body) is None
+    assert _describe(describer, client, s3, body) is None
 
 
 def test_nova_accusation_returns_none(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
+    describer, client, s3 = _describer(tmp_path)
     body = '{"summary": "Someone stolen the box.", "uncertain": false}'
-    assert _describe(describer, client, body) is None
+    assert _describe(describer, client, s3, body) is None
 
 
 def test_nova_invalid_json_returns_none(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
-    assert _describe(describer, client, "not json") is None
-    assert _describe(describer, client, '{"summary": "", "uncertain": false}') is None
+    describer, client, s3 = _describer(tmp_path)
+    assert _describe(describer, client, s3, "not json") is None
+    assert _describe(describer, client, s3, '{"summary": "", "uncertain": false}') is None
 
 
 def test_nova_client_error_is_port_error(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path)
-    with Stubber(client) as stubber:
+    describer, client, s3 = _describer(tmp_path)
+    with Stubber(s3) as s3_stubber, Stubber(client) as stubber:
+        s3_stubber.add_response(
+            "get_object",
+            {"Body": StreamingBody(io.BytesIO(b"clip-bytes"), len("clip-bytes"))},
+            {"Bucket": "porch-media", "Key": "a1b2.mp4"},
+        )
         stubber.add_client_error("converse", "ThrottlingException")
         with pytest.raises(PortError, match=re.escape("bedrock.converse")):
             asyncio.run(describer.describe("a1b2.mp4"))
 
 
 def test_nova_video_format_from_suffix(tmp_path: Path) -> None:
-    describer, client = _describer(tmp_path, mode="record")
-    with Stubber(client) as stubber:
+    describer, client, s3 = _describer(tmp_path, mode="record")
+    with Stubber(s3) as s3_stubber, Stubber(client) as stubber:
+        s3_stubber.add_response(
+            "get_object",
+            {"Body": StreamingBody(io.BytesIO(b"clip-bytes"), len("clip-bytes"))},
+            {"Bucket": "porch-media", "Key": "deadbeef.mov"},
+        )
         stubber.add_response(
             "converse", _converse_response('{"summary": "s.", "uncertain": false}')
         )
@@ -124,7 +172,7 @@ def test_nova_video_format_from_suffix(tmp_path: Path) -> None:
 
 
 def test_nova_unknown_suffix_is_port_error(tmp_path: Path) -> None:
-    describer, _ = _describer(tmp_path)
+    describer, _, _s3 = _describer(tmp_path)
     with pytest.raises(PortError, match=re.escape("unknown clip format")):
         asyncio.run(describer.describe("deadbeef.unknownext"))
 

@@ -146,7 +146,7 @@ async def _ingest_once(
         PorchClerk(
             model=BedrockModel(
                 model_id=settings.agent.model_id,
-                region_name=settings.aws.region,
+                region_name=settings.aws.bedrock_region,
             ),
             ports=enrich,
             house=house,

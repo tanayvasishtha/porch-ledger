@@ -1,9 +1,11 @@
 """Bedrock Nova clip description behind the ClipDescriber port.
 
-The model gets the clip's S3 URI (never local bytes) plus a strict JSON
-prompt. The response is parsed defensively: code fences stripped, JSON
+The clip bytes go inline in the Converse request (2-6 MB, under the
+inline limit): Bedrock in us-east-1 cannot read S3 in the home region.
+The response is parsed defensively: code fences stripped, JSON
 validated, accusations and overlong or uncertain summaries dropped to
-None so enrich keeps its fallback copy.
+None so enrich keeps its fallback copy. The cassette request still keys
+on the clip's S3 URI so recorded runs replay unchanged.
 """
 
 import asyncio
@@ -78,12 +80,13 @@ class NovaDescriber(ClipDescriber):
             _ADAPTER,
             _VERSION,
             request,
-            lambda: self._converse(uri, video_format),
+            lambda: self._converse(clip_key, video_format),
             _STR,
         )
         return self._parse(text)
 
-    async def _converse(self, uri: str, video_format: VideoFormatType) -> str:
+    async def _converse(self, clip_key: str, video_format: VideoFormatType) -> str:
+        data = await self._media.get(clip_key)
         async with self._sem:
             try:
                 response = await asyncio.to_thread(
@@ -96,7 +99,7 @@ class NovaDescriber(ClipDescriber):
                                 {
                                     "video": {
                                         "format": video_format,
-                                        "source": {"s3Location": {"uri": uri}},
+                                        "source": {"bytes": data},
                                     }
                                 },
                                 {"text": _PROMPT},

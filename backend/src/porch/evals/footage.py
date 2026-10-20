@@ -4,8 +4,8 @@ Ground truth lives in a manifest written by hand after looking at each
 photo: the resident whose name is on the label (or "not_ours" for a name
 outside the household, or "unreadable" for a label turned away), and
 whether the box blocks the door. The pipeline under test is the same code
-the worker runs: Rekognition finds the box, the crop goes to Textract, the
-text is matched to residents, and the box is checked against the door
+the worker runs: Rekognition finds the box, Rekognition DetectText reads
+the crop, the text is matched to residents, and the box is checked against the door
 polygon of the house the photos were taken at.
 
 Run with `--mode record` once against AWS; the responses land in cassettes,
@@ -155,12 +155,12 @@ async def eval_door(
 def live_ports(settings: Settings, cassette: Cassette) -> Ports:
     from porch.adapters.aws.clients import build_clients  # noqa: PLC0415
     from porch.adapters.aws.rekognition import RekognitionLabeler  # noqa: PLC0415
-    from porch.adapters.aws.textract import TextractReader  # noqa: PLC0415
+    from porch.adapters.aws.rekognition_text import RekognitionTextReader  # noqa: PLC0415
 
     clients = build_clients(settings)
     return Ports(
         labeler=RekognitionLabeler(clients.rekognition, settings, cassette),
-        reader=TextractReader(clients.textract, settings, cassette),
+        reader=RekognitionTextReader(clients.rekognition, settings, cassette),
     )
 
 

@@ -36,6 +36,13 @@ def test_nested_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     assert Settings().aws.region == "eu-west-1"
 
 
+def test_bedrock_region_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PORCH_AWS__BEDROCK_REGION", "us-west-2")
+    s = Settings()
+    assert s.aws.bedrock_region == "us-west-2"
+    assert s.aws.region != s.aws.bedrock_region
+
+
 def test_constraint_rejection() -> None:
     with pytest.raises(ValidationError):
         EngineSettings(dwell_min_s=0)

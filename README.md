@@ -37,7 +37,7 @@ Ring event history -> snapshots + clip -> Rekognition labels -> VisitEngine -> P
 ```
 
 - **VisitEngine** (`backend/src/porch/domain/engine.py`) is a pure function. It groups events less than two minutes apart, tracks boxes on the porch across snapshots by IoU, and classifies each visit. Property tests check that it is idempotent, independent of input order, and gives the same answer run incrementally or in one batch.
-- **PorchClerk** is a Strands agent on Amazon Bedrock that decides which tools a visit needs: read the label (Textract), check the door (geometry), check the rain (Open-Meteo), describe the clip (Nova). Every tool is timed into a trace shown on the TV under "How this card was made". If the agent fails, the same steps run deterministically.
+- **PorchClerk** is a Strands agent on Amazon Bedrock that decides which tools a visit needs: read the label (Rekognition DetectText), check the door (geometry), check the rain (Open-Meteo), describe the clip (Nova). Every tool is timed into a trace shown on the TV under "How this card was made". If the agent fails, the same steps run deterministically.
 - **Fire TV app** (`tv/`): Kotlin and Compose for TV, 3 MB release build, polls with ETags so an unchanged day costs a 304.
 - **Echo-style client** (`echo/`): a Preact web app on an iPad that is a real MCP client (protocol 2025-11-25) and speaks answers with Amazon Polly.
 - **AWS** (`infra/template.yaml`): API and worker Lambdas, HTTP API, DynamoDB, private S3, EventBridge Scheduler, SSM for secrets, CloudFront for the iPad app, a $5 budget alarm, least-privilege IAM per function.

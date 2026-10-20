@@ -16,8 +16,8 @@ from botocore.stub import Stubber
 from porch.adapters.aws import (
     PollySpeech,
     RekognitionLabeler,
+    RekognitionTextReader,
     S3MediaStore,
-    TextractReader,
     build_clients,
 )
 from porch.adapters.aws.clients import aws_port_error
@@ -192,44 +192,61 @@ def test_rekognition_record_then_replay_skips_client(tmp_path: Path) -> None:
     assert replayed == recorded
 
 
-# --- TextractReader ---------------------------------------------------------
+# --- RekognitionTextReader --------------------------------------------------
 
 
 def _line(text: str, top: float, left: float, confidence: float = 95.0) -> dict[str, Any]:
     return {
-        "BlockType": "LINE",
-        "Text": text,
+        "Type": "LINE",
+        "DetectedText": text,
         "Confidence": confidence,
         "Geometry": {"BoundingBox": {"Top": top, "Left": left, "Width": 0.4, "Height": 0.05}},
     }
 
 
-def test_textract_reads_lines_in_order_with_confidence_filter(tmp_path: Path) -> None:
-    client = _client("textract")
-    reader = TextractReader(client, _settings(), Cassette(tmp_path, "live"))
+def test_detect_text_reads_lines_in_order_with_confidence_filter(tmp_path: Path) -> None:
+    client = _client("rekognition")
+    reader = RekognitionTextReader(client, _settings(), Cassette(tmp_path, "live"))
     image = b"scan"
-    blocks = [
-        {"BlockType": "PAGE"},
+    detections = [
         _line("PRIYA SHAH", 0.4, 0.1),
         _line("LOW CONF", 0.2, 0.0, confidence=40.0),
         _line("FRAGILE", 0.1, 0.3),
-        {"BlockType": "WORD", "Text": "ignored", "Confidence": 99.0},
+        _line("EMPTY", 0.5, 0.5).copy() | {"DetectedText": ""},
+        {"Type": "WORD", "DetectedText": "ignored", "Confidence": 99.0},
     ]
     with Stubber(client) as stubber:
         stubber.add_response(
-            "detect_document_text",
-            {"Blocks": blocks},
-            {"Document": {"Bytes": image}},
+            "detect_text",
+            {"TextDetections": detections},
+            {"Image": {"Bytes": image}},
         )
         assert asyncio.run(reader.read(image)) == ("FRAGILE", "PRIYA SHAH")
 
 
-def test_textract_client_error_is_port_error(tmp_path: Path) -> None:
-    client = _client("textract")
-    reader = TextractReader(client, _settings(), Cassette(tmp_path, "live"))
+def test_detect_text_replay_matches_recording(tmp_path: Path) -> None:
+    """DetectText answers replay byte-identical under the cassette key."""
+    client = _client("rekognition")
+    reader = RekognitionTextReader(client, _settings(), Cassette(tmp_path, "record"))
+    image = b"scan"
     with Stubber(client) as stubber:
-        stubber.add_client_error("detect_document_text", "InvalidImageFormatException")
-        with pytest.raises(PortError, match=re.escape("textract.detect_document_text")):
+        stubber.add_response(
+            "detect_text",
+            {"TextDetections": [_line("FRAGILE", 0.1, 0.3)]},
+            {"Image": {"Bytes": image}},
+        )
+        assert asyncio.run(reader.read(image)) == ("FRAGILE",)
+        stubber.deactivate()
+    replay = RekognitionTextReader(client, _settings(), Cassette(tmp_path, "replay"))
+    assert asyncio.run(replay.read(image)) == ("FRAGILE",)
+
+
+def test_detect_text_client_error_is_port_error(tmp_path: Path) -> None:
+    client = _client("rekognition")
+    reader = RekognitionTextReader(client, _settings(), Cassette(tmp_path, "live"))
+    with Stubber(client) as stubber:
+        stubber.add_client_error("detect_text", "InvalidImageFormatException")
+        with pytest.raises(PortError, match=re.escape("rekognition.detect_text")):
             asyncio.run(reader.read(b"img"))
 
 
