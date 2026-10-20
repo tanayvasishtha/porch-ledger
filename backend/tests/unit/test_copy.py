@@ -147,6 +147,17 @@ def test_fact_ordering() -> None:
     )
 
 
+def test_claimed_box_drops_door_and_rain_warnings() -> None:
+    visit = replace(
+        mkvisit(VisitKind.DELIVERY, ms(1, 14, 0), ms(1, 14, 2)),
+        box=facts_box("matched", recipient_id="r1", blocks_door=True),
+        rain=RainRisk(probability_pct=80, by_local_time="6:30 pm"),
+        claimed_by="r1",
+    )
+    card = card_text(visit, mkhouse())
+    assert card.facts == ("Box for Priya Shah", "Taken in by Priya Shah")
+
+
 def test_unreadable_and_not_ours_facts() -> None:
     unreadable = card_text(
         replace(
